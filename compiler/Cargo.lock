@@ -1391,6 +1391,62 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
 
 [[package]]
+name = "relay-bin"
+version = "13.2.0"
+dependencies = [
+ "async-trait",
+ "bincode",
+ "clap",
+ "common",
+ "common-path",
+ "dashmap",
+ "dependency-analyzer",
+ "docblock-syntax",
+ "errors",
+ "extract-graphql",
+ "fnv",
+ "futures 0.3.13",
+ "glob",
+ "graphql-cli",
+ "graphql-ir",
+ "graphql-syntax",
+ "graphql-text-printer",
+ "graphql-watchman",
+ "hex",
+ "indexmap",
+ "intern",
+ "js-config-loader",
+ "lazy_static",
+ "log",
+ "md-5",
+ "persist-query",
+ "rayon",
+ "regex",
+ "relay-codegen",
+ "relay-compiler",
+ "relay-config",
+ "relay-docblock",
+ "relay-lsp",
+ "relay-schema",
+ "relay-transforms",
+ "relay-typegen",
+ "schema",
+ "schema-diff",
+ "schema-documentation",
+ "serde",
+ "serde_bser",
+ "serde_json",
+ "sha-1",
+ "signedsource",
+ "simplelog",
+ "thiserror",
+ "tokio",
+ "walkdir",
+ "watchman_client",
+ "zstd",
+]
+
+[[package]]
 name = "relay-codegen"
 version = "0.0.0"
 dependencies = [
