@@ -98,6 +98,9 @@ pub enum TokenKind {
     #[token("|")]
     Pipe,
 
+    #[token("?")]
+    Question,
+
     #[token("...")]
     Spread,
 
@@ -210,6 +213,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Period => "period ('.')",
             TokenKind::PeriodPeriod => "double period ('..')",
             TokenKind::Pipe => "pipe ('|')",
+            TokenKind::Question => "question ('?')",
             TokenKind::Spread => "spread ('...')",
             TokenKind::BlockStringLiteral => "block string (e.g. '\"\"\"hi\"\"\"')",
             TokenKind::Error => "error",

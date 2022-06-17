@@ -74,6 +74,7 @@ ExecutableDocument {
                                 arguments: None,
                             },
                         ],
+                        nullability_assertion: None,
                     },
                 ],
                 end: Token {

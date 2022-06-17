@@ -95,6 +95,7 @@ fn build_refetch_operation(
                 }],
                 directives: vec![],
                 selections: vec![build_fragment_spread(&fragment)],
+                nullability_assertion: None,
             }))],
             fragment,
         }))
@@ -198,6 +199,7 @@ fn enforce_selections_with_id_field(
             definition: WithLocation::new(fragment.name.location, identifier_field_id),
             arguments: vec![],
             directives: vec![],
+            nullability_assertion: None,
         })));
     }
     if !has_field(&next_selections, fetch_token_field_id) {
@@ -206,6 +208,7 @@ fn enforce_selections_with_id_field(
             definition: WithLocation::generated(fetch_token_field_id),
             arguments: vec![],
             directives: vec![],
+            nullability_assertion: None,
         })));
     }
     next_selections

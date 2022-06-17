@@ -116,6 +116,7 @@ impl<'s> Transformer for GenerateTypenameTransform<'s> {
                 definition: WithLocation::new(field.definition.location, schema.typename_field()),
                 arguments: Default::default(),
                 directives: Default::default(),
+                nullability_assertion: None,
             })));
             if let TransformedValue::Replace(selections) = selections {
                 next_selections.extend(selections.into_iter())
@@ -135,6 +136,7 @@ impl<'s> Transformer for GenerateTypenameTransform<'s> {
                     arguments: field.arguments.clone(),
                     directives: field.directives.clone(),
                     selections,
+                    nullability_assertion: None,
                 })))
             }
         }
@@ -233,5 +235,6 @@ fn generate_abstract_key_field(
         } else {
             vec![]
         },
+        nullability_assertion: None,
     }))
 }

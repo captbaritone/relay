@@ -1,0 +1,5 @@
+query {
+    some_field? {
+        some_other_field!
+    }
+}

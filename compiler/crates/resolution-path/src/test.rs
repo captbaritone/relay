@@ -15,6 +15,7 @@ pub(super) fn test_resolution(source: &str, sub_str: &str, cb: impl Fn(&Resoluti
         SourceLocationKey::standalone("/test/file"),
         ParserFeatures {
             enable_variable_definitions: true,
+            enable_client_controlled_nullability: true,
         },
     )
     .unwrap();

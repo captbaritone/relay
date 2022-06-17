@@ -19,6 +19,7 @@ pub fn transform_fixture(fixture: &Fixture<'_>) -> Result<String, String> {
         source_location,
         ParserFeatures {
             enable_variable_definitions: true,
+            enable_client_controlled_nullability: true,
         },
     )
     .unwrap();

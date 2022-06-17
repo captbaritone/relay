@@ -1,0 +1,87 @@
+==================================== INPUT ====================================
+query {
+    some_field? {
+        some_other_field!
+    }
+}
+==================================== OUTPUT ===================================
+ExecutableDocument {
+    span: 0:59,
+    definitions: [
+        OperationDefinition {
+            location: client_controlled_nullability.graphql:0:59,
+            operation: Some(
+                (
+                    Token {
+                        span: 0:5,
+                        kind: Identifier,
+                    },
+                    Query,
+                ),
+            ),
+            name: None,
+            variable_definitions: None,
+            directives: [],
+            selections: List {
+                span: 6:59,
+                start: Token {
+                    span: 6:7,
+                    kind: OpenBrace,
+                },
+                items: [
+                    LinkedField {
+                        span: 12:57,
+                        alias: None,
+                        name: Identifier {
+                            span: 12:22,
+                            token: Token {
+                                span: 12:22,
+                                kind: Identifier,
+                            },
+                            value: "some_field",
+                        },
+                        arguments: None,
+                        directives: [],
+                        selections: List {
+                            span: 24:57,
+                            start: Token {
+                                span: 24:25,
+                                kind: OpenBrace,
+                            },
+                            items: [
+                                ScalarField {
+                                    span: 34:51,
+                                    alias: None,
+                                    name: Identifier {
+                                        span: 34:50,
+                                        token: Token {
+                                            span: 34:50,
+                                            kind: Identifier,
+                                        },
+                                        value: "some_other_field",
+                                    },
+                                    arguments: None,
+                                    directives: [],
+                                    nullability_assertion: Some(
+                                        NonNullAssertion,
+                                    ),
+                                },
+                            ],
+                            end: Token {
+                                span: 56:57,
+                                kind: CloseBrace,
+                            },
+                        },
+                        nullability_assertion: Some(
+                            ErrorBoundary,
+                        ),
+                    },
+                ],
+                end: Token {
+                    span: 58:59,
+                    kind: CloseBrace,
+                },
+            },
+        },
+    ],
+}

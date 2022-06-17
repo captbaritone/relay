@@ -118,6 +118,7 @@ ExecutableDocument {
                                     },
                                     arguments: None,
                                     directives: [],
+                                    nullability_assertion: None,
                                 },
                             ],
                             end: Token {
@@ -125,6 +126,7 @@ ExecutableDocument {
                                 kind: CloseBrace,
                             },
                         },
+                        nullability_assertion: None,
                     },
                 ],
                 end: Token {

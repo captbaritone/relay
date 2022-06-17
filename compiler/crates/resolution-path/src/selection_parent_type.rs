@@ -121,6 +121,7 @@ mod tests {
             SourceLocationKey::standalone("/test/file"),
             ParserFeatures {
                 enable_variable_definitions: true,
+                enable_client_controlled_nullability: true,
             },
         )
         .unwrap();

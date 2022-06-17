@@ -105,6 +105,7 @@ ExecutableDocument {
                             },
                         ),
                         directives: [],
+                        nullability_assertion: None,
                     },
                     ScalarField {
                         span: 151:336,
@@ -159,6 +160,7 @@ ExecutableDocument {
                             },
                         ),
                         directives: [],
+                        nullability_assertion: None,
                     },
                     ScalarField {
                         span: 340:539,
@@ -213,6 +215,7 @@ ExecutableDocument {
                             },
                         ),
                         directives: [],
+                        nullability_assertion: None,
                     },
                     ScalarField {
                         span: 543:749,
@@ -267,6 +270,7 @@ ExecutableDocument {
                             },
                         ),
                         directives: [],
+                        nullability_assertion: None,
                     },
                 ],
                 end: Token {

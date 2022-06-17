@@ -153,6 +153,7 @@ impl<'program> SubscriptionTransform<'program> {
                 ),
             }],
             directives: vec![],
+            nullability_assertion: None,
         })));
 
         let type_condition = Some(
@@ -197,6 +198,7 @@ impl<'program> SubscriptionTransform<'program> {
             arguments: linked_field.arguments.clone(),
             directives: linked_field.directives.clone(),
             selections,
+            nullability_assertion: None,
         }))
     }
 }

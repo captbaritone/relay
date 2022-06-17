@@ -19,6 +19,7 @@ pub fn transform_fixture(fixture: &Fixture<'_>) -> Result<String, String> {
     let source_location = SourceLocationKey::standalone(fixture.file_name);
     let features = ParserFeatures {
         enable_variable_definitions: true,
+        enable_client_controlled_nullability: true,
     };
     let ast = parse_executable_with_features(fixture.content, source_location, features).unwrap();
     let mut sources = FnvHashMap::default();

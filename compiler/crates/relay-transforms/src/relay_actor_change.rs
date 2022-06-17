@@ -149,6 +149,7 @@ impl<'program, 'feature> Transformer for ActorChangeTransform<'program, 'feature
                 definition: WithLocation::new(actor_change_directive.name.location, viewer_field),
                 arguments: vec![],
                 directives: vec![],
+                nullability_assertion: None,
             })));
 
             let next_selection = Selection::InlineFragment(Arc::new(InlineFragment {

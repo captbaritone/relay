@@ -70,6 +70,7 @@ ExecutableDocument {
                                 kind: CloseBrace,
                             },
                         },
+                        nullability_assertion: None,
                     },
                 ],
                 end: Token {

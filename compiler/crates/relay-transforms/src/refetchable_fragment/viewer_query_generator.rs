@@ -56,6 +56,7 @@ fn build_refetch_operation(
             arguments: vec![],
             directives: vec![],
             selections: vec![build_fragment_spread(&fragment)],
+            nullability_assertion: None,
         }))],
         fragment,
     }))

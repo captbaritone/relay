@@ -152,6 +152,7 @@ fn build_refetch_operation(
                     }],
                     directives: vec![],
                     selections: vec![build_fragment_spread(&fragment)],
+                    nullability_assertion: None,
                 }))],
                 fragment,
             }))
@@ -210,6 +211,7 @@ fn enforce_selections_with_id_field(
                     definition: WithLocation::new(fragment.name.location, id_field_id),
                     arguments: vec![],
                     directives: vec![],
+                    nullability_assertion: None,
                 }))],
                 spread_location: Location::generated(),
             }))
@@ -219,6 +221,7 @@ fn enforce_selections_with_id_field(
                 definition: WithLocation::new(fragment.name.location, id_field_id),
                 arguments: vec![],
                 directives: vec![],
+                nullability_assertion: None,
             }))
         };
 

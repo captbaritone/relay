@@ -955,6 +955,7 @@ impl<'schema, 'signatures, 'options> Builder<'schema, 'signatures, 'options> {
             arguments,
             directives,
             selections,
+            nullability_assertion: field.nullability_assertion.clone(),
         })
     }
 
@@ -1018,6 +1019,7 @@ impl<'schema, 'signatures, 'options> Builder<'schema, 'signatures, 'options> {
             definition: WithLocation::from_span(self.location.source_location(), span, field_id),
             arguments,
             directives,
+            nullability_assertion: field.nullability_assertion.clone(),
         })
     }
 
@@ -1043,6 +1045,7 @@ impl<'schema, 'signatures, 'options> Builder<'schema, 'signatures, 'options> {
             ),
             arguments: Default::default(),
             directives,
+            nullability_assertion: field.nullability_assertion.clone(),
         })
     }
 
@@ -1068,6 +1071,7 @@ impl<'schema, 'signatures, 'options> Builder<'schema, 'signatures, 'options> {
             ),
             arguments: Default::default(),
             directives,
+            nullability_assertion: field.nullability_assertion.clone(),
         })
     }
 
@@ -1094,6 +1098,7 @@ impl<'schema, 'signatures, 'options> Builder<'schema, 'signatures, 'options> {
             ),
             arguments: Default::default(),
             directives,
+            nullability_assertion: field.nullability_assertion.clone(),
         })
     }
 

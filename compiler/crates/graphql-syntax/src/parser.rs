@@ -20,6 +20,9 @@ type ParseResult<T> = Result<T, ()>;
 pub struct ParserFeatures {
     /// Enable the experimental fragment variables definitions syntax
     pub enable_variable_definitions: bool,
+    /// Enable the experimental client controleld nullability syntax
+    // https://github.com/graphql/graphql-js/pull/3418
+    pub enable_client_controlled_nullability: bool,
 }
 
 pub struct Parser<'a> {
@@ -1227,6 +1230,8 @@ impl<'a> Parser<'a> {
             (name, None)
         };
         let arguments = self.parse_optional_arguments()?;
+        let nullability_assertion = self.parse_optional_nullability_assertion()?;
+
         let directives = self.parse_directives()?;
         if self.peek_token_kind() == TokenKind::OpenBrace {
             let selections = self.parse_selections()?;
@@ -1237,15 +1242,34 @@ impl<'a> Parser<'a> {
                 arguments,
                 directives,
                 selections,
+                nullability_assertion,
             }))
         } else {
+            if let Some(NullabilityAssertion::ErrorBoundary) = nullability_assertion {
+                // TODO: Is it invalid for a leaf node to be an error boundary?
+            }
             Ok(Selection::ScalarField(ScalarField {
                 span: Span::new(start, self.end_index),
                 alias,
                 name,
                 arguments,
                 directives,
+                nullability_assertion,
             }))
+        }
+    }
+
+    fn parse_optional_nullability_assertion(
+        &mut self,
+    ) -> ParseResult<Option<NullabilityAssertion>> {
+        // TODO: Handle plural options
+        let maybe_assert = self.parse_optional_kind(TokenKind::Exclamation);
+        let maybe_catch = self.parse_optional_kind(TokenKind::Question);
+        match (maybe_assert, maybe_catch) {
+            (None, None) => Ok(None),
+            (None, Some(_catch)) => Ok(Some(NullabilityAssertion::ErrorBoundary)),
+            (Some(_assert), None) => Ok(Some(NullabilityAssertion::NonNullAssertion)),
+            (Some(_assert), Some(_catch)) => panic!("Can't throw and catch"),
         }
     }
 

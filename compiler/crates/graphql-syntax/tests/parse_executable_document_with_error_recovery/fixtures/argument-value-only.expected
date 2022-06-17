@@ -96,6 +96,7 @@ ExecutableDocument {
                             },
                         ),
                         directives: [],
+                        nullability_assertion: None,
                     },
                 ],
                 end: Token {

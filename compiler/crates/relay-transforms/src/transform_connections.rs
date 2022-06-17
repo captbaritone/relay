@@ -95,6 +95,7 @@ impl<'s> ConnectionTransform<'s> {
                     arguments: Vec::new(),
                     directives: Vec::new(),
                     selections: Vec::new(),
+                    nullability_assertion: None,
                 }
             } else {
                 // Otherwise reuse the existing edges field
@@ -164,6 +165,7 @@ impl<'s> ConnectionTransform<'s> {
                             arguments: Vec::new(),
                             directives: Vec::new(),
                             selections: Vec::new(),
+                            nullability_assertion: None,
                         }
                     } else {
                         // Otherwise reuse the existing edges field
@@ -180,6 +182,7 @@ impl<'s> ConnectionTransform<'s> {
                 arguments: Vec::new(),
                 directives: Vec::new(),
                 selections: Vec::new(),
+                nullability_assertion: None,
             },
         };
         transformed_page_info_field

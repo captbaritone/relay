@@ -50,6 +50,7 @@ impl<'s> Transformer for ReplaceAssignableFragmentSpreads<'s> {
                     },
                     arguments: vec![],
                     directives: vec![],
+                    nullability_assertion: None,
                 })))
             } else {
                 Transformed::Keep

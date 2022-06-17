@@ -400,6 +400,7 @@ impl<'s> Transformer for ReactFlightTransform<'s> {
             ],
             definition: WithLocation::generated(flight_field_id),
             directives,
+            nullability_assertion: None,
         })))
     }
 }

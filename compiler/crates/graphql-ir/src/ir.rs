@@ -6,7 +6,7 @@
  */
 
 use common::{Location, Named, WithLocation};
-use graphql_syntax::{FloatValue, OperationKind};
+use graphql_syntax::{FloatValue, NullabilityAssertion, OperationKind};
 use intern::string_key::StringKey;
 use schema::{FieldID, Type, TypeReference};
 use schema::{SDLSchema, Schema};
@@ -258,6 +258,7 @@ pub struct LinkedField {
     pub arguments: Vec<Argument>,
     pub directives: Vec<Directive>,
     pub selections: Vec<Selection>,
+    pub nullability_assertion: Option<NullabilityAssertion>,
 }
 
 impl Field for LinkedField {
@@ -285,6 +286,7 @@ pub struct ScalarField {
     pub definition: WithLocation<FieldID>,
     pub arguments: Vec<Argument>,
     pub directives: Vec<Directive>,
+    pub nullability_assertion: Option<NullabilityAssertion>,
 }
 
 impl Field for ScalarField {

@@ -138,6 +138,7 @@ impl<'program> RelayResolverSpreadTransform<'program> {
                     definition: WithLocation::generated(self.program.schema.clientid_field()),
                     arguments: vec![],
                     directives: new_directives,
+                    nullability_assertion: None,
                 }))
             }
         })

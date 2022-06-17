@@ -217,6 +217,12 @@ pub struct InlineFragment {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum NullabilityAssertion {
+    ErrorBoundary,
+    NonNullAssertion,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct LinkedField {
     pub span: Span,
     pub alias: Option<Alias>,
@@ -224,6 +230,7 @@ pub struct LinkedField {
     pub arguments: Option<List<Argument>>,
     pub directives: Vec<Directive>,
     pub selections: List<Selection>,
+    pub nullability_assertion: Option<NullabilityAssertion>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -233,4 +240,5 @@ pub struct ScalarField {
     pub name: Identifier,
     pub arguments: Option<List<Argument>>,
     pub directives: Vec<Directive>,
+    pub nullability_assertion: Option<NullabilityAssertion>,
 }

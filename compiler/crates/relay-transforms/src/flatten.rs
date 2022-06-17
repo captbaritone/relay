@@ -201,6 +201,7 @@ impl FlattenTransform {
                     arguments: linked_field.arguments.clone(),
                     directives: linked_field.directives.clone(),
                     selections: next_selections,
+                    nullability_assertion: None,
                 })
             });
         if should_cache {

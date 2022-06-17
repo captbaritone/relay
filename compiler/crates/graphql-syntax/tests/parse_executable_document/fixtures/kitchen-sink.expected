@@ -316,6 +316,7 @@ ExecutableDocument {
                                     },
                                     arguments: None,
                                     directives: [],
+                                    nullability_assertion: None,
                                 },
                                 InlineFragment {
                                     span: 118:315,
@@ -398,6 +399,7 @@ ExecutableDocument {
                                                             },
                                                             arguments: None,
                                                             directives: [],
+                                                            nullability_assertion: None,
                                                         },
                                                         LinkedField {
                                                             span: 184:301,
@@ -569,6 +571,7 @@ ExecutableDocument {
                                                                         },
                                                                         arguments: None,
                                                                         directives: [],
+                                                                        nullability_assertion: None,
                                                                     },
                                                                     FragmentSpread {
                                                                         span: 266:291,
@@ -609,6 +612,7 @@ ExecutableDocument {
                                                                     kind: CloseBrace,
                                                                 },
                                                             },
+                                                            nullability_assertion: None,
                                                         },
                                                     ],
                                                     end: Token {
@@ -616,6 +620,7 @@ ExecutableDocument {
                                                         kind: CloseBrace,
                                                     },
                                                 },
+                                                nullability_assertion: None,
                                             },
                                         ],
                                         end: Token {
@@ -708,6 +713,7 @@ ExecutableDocument {
                                                 },
                                                 arguments: None,
                                                 directives: [],
+                                                nullability_assertion: None,
                                             },
                                         ],
                                         end: Token {
@@ -744,6 +750,7 @@ ExecutableDocument {
                                                 },
                                                 arguments: None,
                                                 directives: [],
+                                                nullability_assertion: None,
                                             },
                                         ],
                                         end: Token {
@@ -758,6 +765,7 @@ ExecutableDocument {
                                 kind: CloseBrace,
                             },
                         },
+                        nullability_assertion: None,
                     },
                 ],
                 end: Token {
@@ -940,6 +948,7 @@ ExecutableDocument {
                                                         arguments: None,
                                                     },
                                                 ],
+                                                nullability_assertion: None,
                                             },
                                         ],
                                         end: Token {
@@ -947,6 +956,7 @@ ExecutableDocument {
                                             kind: CloseBrace,
                                         },
                                     },
+                                    nullability_assertion: None,
                                 },
                             ],
                             end: Token {
@@ -954,6 +964,7 @@ ExecutableDocument {
                                 kind: CloseBrace,
                             },
                         },
+                        nullability_assertion: None,
                     },
                 ],
                 end: Token {
@@ -1164,6 +1175,7 @@ ExecutableDocument {
                                                             },
                                                             arguments: None,
                                                             directives: [],
+                                                            nullability_assertion: None,
                                                         },
                                                     ],
                                                     end: Token {
@@ -1171,6 +1183,7 @@ ExecutableDocument {
                                                         kind: CloseBrace,
                                                     },
                                                 },
+                                                nullability_assertion: None,
                                             },
                                             LinkedField {
                                                 span: 680:715,
@@ -1205,6 +1218,7 @@ ExecutableDocument {
                                                             },
                                                             arguments: None,
                                                             directives: [],
+                                                            nullability_assertion: None,
                                                         },
                                                     ],
                                                     end: Token {
@@ -1212,6 +1226,7 @@ ExecutableDocument {
                                                         kind: CloseBrace,
                                                     },
                                                 },
+                                                nullability_assertion: None,
                                             },
                                         ],
                                         end: Token {
@@ -1219,6 +1234,7 @@ ExecutableDocument {
                                             kind: CloseBrace,
                                         },
                                     },
+                                    nullability_assertion: None,
                                 },
                             ],
                             end: Token {
@@ -1226,6 +1242,7 @@ ExecutableDocument {
                                 kind: CloseBrace,
                             },
                         },
+                        nullability_assertion: None,
                     },
                 ],
                 end: Token {
@@ -1446,6 +1463,7 @@ ExecutableDocument {
                             },
                         ),
                         directives: [],
+                        nullability_assertion: None,
                     },
                     ScalarField {
                         span: 1016:1018,
@@ -1460,6 +1478,7 @@ ExecutableDocument {
                         },
                         arguments: None,
                         directives: [],
+                        nullability_assertion: None,
                     },
                     ScalarField {
                         span: 1021:1031,
@@ -1474,6 +1493,7 @@ ExecutableDocument {
                         },
                         arguments: None,
                         directives: [],
+                        nullability_assertion: None,
                     },
                 ],
                 end: Token {
@@ -1597,6 +1617,7 @@ ExecutableDocument {
                             },
                         ),
                         directives: [],
+                        nullability_assertion: None,
                     },
                     ScalarField {
                         span: 1092:1097,
@@ -1611,6 +1632,7 @@ ExecutableDocument {
                         },
                         arguments: None,
                         directives: [],
+                        nullability_assertion: None,
                     },
                 ],
                 end: Token {
@@ -1653,6 +1675,7 @@ ExecutableDocument {
                         },
                         arguments: None,
                         directives: [],
+                        nullability_assertion: None,
                     },
                 ],
                 end: Token {

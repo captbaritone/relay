@@ -212,6 +212,7 @@ impl<'s> Transformer for AssignableFragmentSpread<'s> {
             definition: WithLocation::generated(self.program.schema.clientid_field()),
             arguments: vec![],
             directives: vec![],
+            nullability_assertion: None,
         }));
 
         let fragment_spread_marker = if fragment_definition.type_condition.is_abstract_type() {
@@ -225,6 +226,7 @@ impl<'s> Transformer for AssignableFragmentSpread<'s> {
                     definition: WithLocation::generated(self.program.schema.typename_field()),
                     arguments: vec![],
                     directives: vec![],
+                    nullability_assertion: None,
                 }))],
                 spread_location: Location::generated(),
             }))
@@ -234,6 +236,7 @@ impl<'s> Transformer for AssignableFragmentSpread<'s> {
                 definition: WithLocation::generated(self.program.schema.typename_field()),
                 arguments: vec![],
                 directives: vec![],
+                nullability_assertion: None,
             }))
         };
 

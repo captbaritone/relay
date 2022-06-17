@@ -100,6 +100,7 @@ impl<'s> Transformer for GenerateIDFieldTransform<'s> {
                     arguments: field.arguments.clone(),
                     directives: field.directives.clone(),
                     selections,
+                    nullability_assertion: None,
                 })))
             }
         }
@@ -250,6 +251,7 @@ impl<'s> GenerateIDFieldTransform<'s> {
             definition: WithLocation::new(location, id_field_id),
             arguments: Default::default(),
             directives: Default::default(),
+            nullability_assertion: None,
         }))
     }
 

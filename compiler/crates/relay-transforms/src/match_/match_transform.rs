@@ -462,6 +462,7 @@ impl<'program, 'flag> MatchTransform<'program, 'flag> {
                 definition: WithLocation::new(module_directive.name.location, js_field_id),
                 arguments: component_field_arguments,
                 directives: Default::default(),
+                nullability_assertion: None,
             }));
 
             let operation_field = Selection::ScalarField(Arc::new(ScalarField {
@@ -472,6 +473,7 @@ impl<'program, 'flag> MatchTransform<'program, 'flag> {
                 definition: WithLocation::new(module_directive.name.location, js_field_id),
                 arguments: operation_field_arguments,
                 directives: Default::default(),
+                nullability_assertion: None,
             }));
 
             let next_spread = Selection::FragmentSpread(Arc::new(FragmentSpread {
@@ -575,6 +577,7 @@ impl<'program, 'flag> MatchTransform<'program, 'flag> {
                         arguments: field.arguments.clone(),
                         directives: field.directives.clone(),
                         selections: next_selections.replace_or_else(|| field.selections.clone()),
+                        nullability_assertion: None,
                     })))
                 });
             }
@@ -698,6 +701,7 @@ impl<'program, 'flag> MatchTransform<'program, 'flag> {
                 arguments: next_arguments,
                 directives: next_directives,
                 selections: next_selections.replace_or_else(|| field.selections.clone()),
+                nullability_assertion: None,
             },
         ))))
     }
