@@ -1,0 +1,20 @@
+{
+  "name": "reactive-kv",
+  "description": "A subscribable key value store that models both concrete and computed nodes.",
+  "version": "0.0.0",
+  "license": "MIT",
+  "homepage": "https://relay.dev",
+  "bugs": "https://github.com/facebook/relay/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/facebook/relay.git",
+    "directory": "packages/relay-runtime"
+  },
+  "dependencies": {
+    "invariant": "^2.2.4"
+  },
+  "directories": {
+    "": "./"
+  },
+  "main": "index.js"
+}
