@@ -759,6 +759,11 @@ class Executor<TMutation: MutationParameters> {
     this._incrementalResults.clear();
     this._source.clear();
     return responses.map(payloadPart => {
+      const relayPayload = payloadPart.responsePayload;
+      if (relayPayload == null) {
+        throw new Error('HACK!!: Expected payload to already be normalized.');
+      }
+      /*
       const relayPayload = normalizeResponse(
         payloadPart,
         this._operation.root,
@@ -771,6 +776,7 @@ class Executor<TMutation: MutationParameters> {
           shouldProcessClientComponents: this._shouldProcessClientComponents,
         },
       );
+      */
       this._getPublishQueueAndSaveActor().commitPayload(
         this._operation,
         relayPayload,

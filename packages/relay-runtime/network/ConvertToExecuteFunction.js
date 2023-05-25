@@ -25,6 +25,7 @@ function convertFetch(fn: FetchFunction): ExecuteFunction {
     cacheConfig,
     uploadables,
     logRequestInfo,
+    operation,
   ) {
     const result = fn(
       request,
@@ -32,6 +33,7 @@ function convertFetch(fn: FetchFunction): ExecuteFunction {
       cacheConfig,
       uploadables,
       logRequestInfo,
+      operation,
     );
     // Note: We allow FetchFunction to directly return Error to indicate
     // a failure to fetch. To avoid handling this special case throughout the

@@ -44,6 +44,7 @@ function create(
     cacheConfig: CacheConfig,
     uploadables?: ?UploadableMap,
     logRequestInfo: ?LogRequestInfoFunction,
+    operation,
   ): RelayObservable<GraphQLResponse> {
     const operationVariables = withProvidedVariables(
       variables,
@@ -80,6 +81,7 @@ function create(
       cacheConfig,
       uploadables,
       logRequestInfo,
+      operation,
     );
   }
 

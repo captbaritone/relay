@@ -42,6 +42,7 @@ function wrapNetworkWithLogObserver(
       variables: Variables,
       cacheConfig: CacheConfig,
       uploadables?: ?UploadableMap,
+      operation,
     ): RelayObservable<GraphQLResponse> {
       const networkRequestId = generateID();
       const logObserver = {
@@ -89,7 +90,14 @@ function wrapNetworkWithLogObserver(
         });
       };
       return network
-        .execute(params, variables, cacheConfig, uploadables, logRequestInfo)
+        .execute(
+          params,
+          variables,
+          cacheConfig,
+          uploadables,
+          logRequestInfo,
+          operation,
+        )
         .do(logObserver);
     },
   };
