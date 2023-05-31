@@ -632,7 +632,7 @@ impl<'schema, 'builder, 'config> CodegenBuilder<'schema, 'builder, 'config> {
     fn build_normalization_relay_resolver(
         &mut self,
         resolver_metadata: &RelayResolverMetadata,
-        inline_fragment: Option<Primitive>,
+        _inline_fragment: Option<Primitive>,
     ) -> Primitive {
         let field_name = resolver_metadata.field_name(self.schema);
         let field_arguments = &resolver_metadata.field_arguments;
@@ -640,16 +640,36 @@ impl<'schema, 'builder, 'config> CodegenBuilder<'schema, 'builder, 'config> {
         let is_output_type = resolver_metadata
             .output_type_info
             .normalization_ast_should_have_is_output_type_true();
+
+        let module = resolver_metadata.import_path;
+
+        let import_path = self
+            .project_config
+            .js_module_import_path(self.definition_source_location, module);
+
+        let variable_name = resolver_metadata.generate_local_resolver_name(self.schema);
+        let resolver_js_module = JSModuleDependency {
+            path: import_path,
+            import_name: match resolver_metadata.import_name {
+                Some(name) => ModuleImportName::Named {
+                    name,
+                    import_as: Some(variable_name),
+                },
+                None => ModuleImportName::Default(variable_name),
+            },
+        };
         Primitive::Key(self.object(object! {
             name: Primitive::String(field_name),
             args: match args {
                 None => Primitive::SkippableNull,
                 Some(key) => Primitive::Key(key),
             },
+            /*
             fragment: match inline_fragment {
                 None => Primitive::SkippableNull,
                 Some(fragment) => fragment,
             },
+            */
             kind: Primitive::String(CODEGEN_CONSTANTS.relay_resolver),
             storage_key: match args {
                 None => Primitive::SkippableNull,
@@ -662,6 +682,8 @@ impl<'schema, 'builder, 'config> CodegenBuilder<'schema, 'builder, 'config> {
                 }
             },
             is_output_type: Primitive::Bool(is_output_type),
+            resolver_module: Primitive::JSModuleDependency(resolver_js_module),
+            //
         }))
     }
 
@@ -1254,36 +1276,12 @@ impl<'schema, 'builder, 'config> CodegenBuilder<'schema, 'builder, 'config> {
             )
         }
         let backing_field = backing_field_primitives.into_iter().next().unwrap();
-
-        if !self
-            .project_config
-            .feature_flags
-            .emit_normalization_nodes_for_client_edges
-        {
-            return backing_field;
-        }
-
-        let field_type = self
-            .schema
-            .field(client_edge_metadata.linked_field.definition.item)
-            .type_
-            .inner();
-
-        if self.schema.is_extension_type(field_type) {
-            let selections_item =
-                self.build_linked_field(context, client_edge_metadata.linked_field);
-            Primitive::Key(self.object(object! {
-                kind: Primitive::String(CODEGEN_CONSTANTS.client_edge_to_client_object),
-                client_edge_backing_field_key: backing_field,
-                client_edge_selections_key: selections_item,
-            }))
-        } else {
-            // If a Client Edge models an edge to the server, its generated
-            // query's normalization AST will take care of
-            // normalization/retention of selections hanging off the edge. So,
-            // we just need to include the backing field.
-            backing_field
-        }
+        let selections_item = self.build_linked_field(context, client_edge_metadata.linked_field);
+        Primitive::Key(self.object(object! {
+            kind: Primitive::String(CODEGEN_CONSTANTS.client_edge_to_client_object),
+            client_edge_backing_field_key: backing_field,
+            client_edge_selections_key: selections_item,
+        }))
     }
 
     fn build_reader_client_edge(

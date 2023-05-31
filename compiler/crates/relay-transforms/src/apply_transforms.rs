@@ -246,6 +246,7 @@ fn apply_reader_transforms(
     })?;
 
     program = log_event.time("required_directive", || required_directive(&program))?;
+    /*
     program = log_event.time("client_edges", || {
         client_edges(&program, &project_config.schema_config)
     })?;
@@ -256,6 +257,7 @@ fn apply_reader_transforms(
             project_config.feature_flags.enable_relay_resolver_transform,
         )
     })?;
+    */
 
     program = log_event.time("client_extensions", || client_extensions(&program));
     program = log_event.time("handle_field_transform", || {
@@ -617,9 +619,12 @@ fn apply_typegen_transforms(
         transform_subscriptions(&program)
     })?;
     program = log_event.time("required_directive", || required_directive(&program))?;
+
+    // Without this, some later validation rules fail.
     program = log_event.time("generate_relay_resolvers_model_fragments", || {
         generate_relay_resolvers_model_fragments(&program, &project_config.schema_config)
     });
+    /*
     program = log_event.time(
         "generate_relay_resolvers_operations_for_nested_objects",
         || {
@@ -629,6 +634,7 @@ fn apply_typegen_transforms(
             )
         },
     )?;
+    */
 
     program = log_event.time("client_edges", || {
         client_edges(&program, &project_config.schema_config)

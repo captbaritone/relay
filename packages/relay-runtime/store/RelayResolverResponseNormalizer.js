@@ -319,6 +319,7 @@ class RelayResponseNormalizer {
     ) {
       throw new Error('TODO: What about non-live resolvers?');
     }
+    // Read live resolver eagerly.
     const readValue = resolverResult.read();
     const storageKey = getStorageKey(resolver, this._variables);
     RelayModernRecord.setValue(record, storageKey, readValue);
