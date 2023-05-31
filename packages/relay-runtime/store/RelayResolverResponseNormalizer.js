@@ -30,6 +30,7 @@ import type {
   Record,
   RelayResponsePayload,
 } from './RelayStoreTypes';
+import type {LiveState} from './experimental-live-resolvers/LiveResolverStore';
 
 const {
   ACTOR_CHANGE,
@@ -96,7 +97,13 @@ function normalize(
   });
 }
 
-type ModelCache = Map<DataID, mixed>;
+type ModelState = {
+  liveState: LiveState<mixed>,
+  subscribedSelections: Set<NormalizationLinkedField>,
+  unsub: () => void,
+};
+
+type ModelCache = Map<DataID, ModelState>;
 
 /**
  * @private
@@ -301,15 +308,45 @@ class RelayResponseNormalizer {
             storageKey,
           );
 
-          let model = this._modelCache.get(nextID);
-          if (model == null) {
-            model = this._normalizeBackingFieldResolver(
+          let modelState = this._modelCache.get(nextID);
+          if (modelState == null) {
+            const liveModel = this._normalizeBackingFieldResolver(
               selection.backingField,
               record,
               data,
             );
-            this._modelCache.set(nextID, model);
+            modelState = {
+              liveState: liveModel,
+              subscribedSelections: new Set([selection.linkedField]),
+              unsub: liveModel.subscribe(() => {
+                const newRecordSource = new RelayRecordSource();
+                // TODO: Typename?
+                const newRecord = RelayModernRecord.create(nextID, 'User');
+                newRecordSource.set(nextID, newRecord);
+                const normalizer = new RelayResponseNormalizer(
+                  newRecordSource,
+                  this._variables,
+                  {},
+                  this._sink,
+                );
+                normalizer._modelCache = this._modelCache;
+                normalizer._currentModel = liveModel.read();
+                const payload = normalizer.normalizeResponse(
+                  selection.linkedField,
+                  nextID,
+                  {},
+                );
+                this._sink.next(payload);
+                //
+              }),
+            };
+            this._modelCache.set(nextID, modelState);
+          } else {
+            // TODO: How to avoid this?
+            modelState.subscribedSelections.add(selection.linkedField);
           }
+
+          const model = modelState.liveState.read();
 
           const prevModel = this._currentModel;
           this._currentModel = model;
@@ -323,8 +360,6 @@ class RelayResponseNormalizer {
           this._normalizeField(selection, selection.linkedField, record, data);
 
           this._currentModel = prevModel;
-
-          console.log('model', model);
 
           break;
         default:
@@ -342,12 +377,12 @@ class RelayResponseNormalizer {
     resolver: NormalizationResolverField,
     record: Record,
     data: PayloadData,
-  ): void {
+  ): LiveState<mixed> {
     if (resolver.fragment) {
       throw new Error("We don't currently support resolvers with fragments");
     }
     if (resolver.resolverModule == null) {
-      return;
+      throw new Error('TODO: expected resolverModule');
     }
     const resolverResult = resolver.resolverModule();
     if (resolverResult == null) {
@@ -361,7 +396,7 @@ class RelayResponseNormalizer {
       throw new Error('TODO: What about non-live resolvers?');
     }
     // Read live resolver eagerly.
-    return resolverResult.read();
+    return resolverResult;
   }
 
   _normalizeResolver(
@@ -373,7 +408,7 @@ class RelayResponseNormalizer {
       throw new Error("We don't currently support resolvers with fragments");
     }
     if (resolver.resolverModule == null) {
-      return;
+      throw new Error('TODO: expected resolverModule');
     }
     if (this._currentModel == null) {
       throw new Error('Expected model');
