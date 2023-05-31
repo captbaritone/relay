@@ -96,6 +96,8 @@ function normalize(
   });
 }
 
+type ModelCache = Map<DataID, mixed>;
+
 /**
  * @private
  *
@@ -115,6 +117,8 @@ class RelayResponseNormalizer {
   _variables: Variables;
   _shouldProcessClientComponents: ?boolean;
   _sink: Sink<RelayResponsePayload>;
+  _modelCache: ModelCache = new Map();
+  _currentModel: mixed | null = null;
 
   constructor(
     recordSource: MutableRecordSource,
@@ -284,7 +288,44 @@ class RelayResponseNormalizer {
           this._normalizeResolver(selection, record, data);
           break;
         case CLIENT_EDGE_TO_CLIENT_OBJECT:
-          this._normalizeResolver(selection.backingField, record, data);
+          const storageKey = getStorageKey(
+            selection.linkedField,
+            this._variables,
+          );
+          const nextID =
+            RelayModernRecord.getLinkedRecordID(record, storageKey) ||
+            generateClientID(RelayModernRecord.getDataID(record), storageKey);
+          invariant(
+            typeof nextID === 'string',
+            'RelayResponseNormalizer: Expected id on field `%s` to be a string.',
+            storageKey,
+          );
+
+          let model = this._modelCache.get(nextID);
+          if (model == null) {
+            model = this._normalizeBackingFieldResolver(
+              selection.backingField,
+              record,
+              data,
+            );
+            this._modelCache.set(nextID, model);
+          }
+
+          const prevModel = this._currentModel;
+          this._currentModel = model;
+
+          var responseKey =
+            selection.linkedField.alias || selection.linkedField.name;
+
+          // Normalizer expects to find the data for the linked field in the response.
+          data[responseKey] = {};
+
+          this._normalizeField(selection, selection.linkedField, record, data);
+
+          this._currentModel = prevModel;
+
+          console.log('model', model);
+
           break;
         default:
           (selection: empty);
@@ -297,7 +338,7 @@ class RelayResponseNormalizer {
     }
   }
 
-  _normalizeResolver(
+  _normalizeBackingFieldResolver(
     resolver: NormalizationResolverField,
     record: Record,
     data: PayloadData,
@@ -320,30 +361,39 @@ class RelayResponseNormalizer {
       throw new Error('TODO: What about non-live resolvers?');
     }
     // Read live resolver eagerly.
-    const readValue = resolverResult.read();
+    return resolverResult.read();
+  }
+
+  _normalizeResolver(
+    resolver: NormalizationResolverField,
+    record: Record,
+    data: PayloadData,
+  ): void {
+    if (resolver.fragment) {
+      throw new Error("We don't currently support resolvers with fragments");
+    }
+    if (resolver.resolverModule == null) {
+      return;
+    }
+    if (this._currentModel == null) {
+      throw new Error('Expected model');
+    }
+    const resolverResult = resolver.resolverModule(this._currentModel);
+    if (resolverResult == null) {
+      throw new Error('TODO: What if a resolver returns null?');
+    }
+    if (
+      typeof resolverResult === 'object' &&
+      typeof resolverResult.read === 'function' &&
+      typeof resolverResult.subscribe === 'function'
+    ) {
+      throw new Error(
+        'TODO: What about live resolvers that are not client edges?',
+      );
+    }
+    // Read live resolver eagerly.
     const storageKey = getStorageKey(resolver, this._variables);
-    RelayModernRecord.setValue(record, storageKey, readValue);
-
-    resolverResult.subscribe(() => {
-      const recordSource = new RelayRecordSource();
-
-      const recordID = RelayModernRecord.getDataID(record);
-      const typeName = RelayModernRecord.getType(record);
-      const newRecord = RelayModernRecord.create(recordID, typeName);
-      const newValue = resolverResult.read();
-      RelayModernRecord.setValue(newRecord, storageKey, newValue);
-
-      recordSource.set(recordID, newRecord);
-
-      this._sink.next({
-        errors: null,
-        fieldPayloads: [],
-        incrementalPlaceholders: [],
-        followupPayloads: [],
-        source: recordSource,
-        isFinal: false,
-      });
-    });
+    RelayModernRecord.setValue(record, storageKey, resolverResult);
   }
 
   _normalizeField(
