@@ -11,6 +11,7 @@
 
 'use strict';
 
+import type {LiveState} from '../store/experimental-live-resolvers/LiveResolverStore';
 import type {ConcreteRequest} from './RelayConcreteNode';
 import type {JSResourceReference} from 'JSResourceReference';
 
@@ -163,6 +164,11 @@ export type NormalizationScalarField = {
   +storageKey?: ?string,
 };
 
+// TODO: Non-live resolvers?
+type ResolverFunction = (...args: Array<any>) => LiveState<mixed>; // flowlint-line unclear-type:off
+// With ES6 imports, a resolver function might be exported under the `default` key.
+type ResolverModule = ResolverFunction;
+
 export type NormalizationResolverField = {
   +kind: 'RelayResolver',
   +name: string,
@@ -170,6 +176,7 @@ export type NormalizationResolverField = {
   +fragment: ?NormalizationInlineFragment,
   +storageKey: ?string,
   +isOutputType: boolean,
+  +resolverModule: ResolverModule,
 };
 
 export type NormalizationClientEdgeToClientObject = {

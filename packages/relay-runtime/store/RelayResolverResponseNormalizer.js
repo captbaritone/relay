@@ -21,6 +21,7 @@ import type {
   NormalizationScalarField,
 } from '../util/NormalizationNode';
 import type {DataID, Variables} from '../util/RelayRuntimeTypes';
+import type {LiveState} from './experimental-live-resolvers/LiveResolverStore';
 import type {
   FollowupPayload,
   HandleFieldPayload,
@@ -30,8 +31,8 @@ import type {
   Record,
   RelayResponsePayload,
 } from './RelayStoreTypes';
-import type {LiveState} from './experimental-live-resolvers/LiveResolverStore';
 
+const RelayObservable = require('../network/RelayObservable');
 const {
   ACTOR_CHANGE,
   CLIENT_COMPONENT,
@@ -59,7 +60,6 @@ const {TYPE_SCHEMA_TYPE, generateTypeID} = require('./TypeID');
 const areEqual = require('areEqual');
 const invariant = require('invariant');
 const warning = require('warning');
-const RelayObservable = require('../network/RelayObservable');
 
 export type GetDataID = (
   fieldValue: {[string]: mixed},
@@ -315,46 +315,20 @@ class RelayResponseNormalizer {
               record,
               data,
             );
+
             modelState = {
               liveState: liveModel,
               subscribedSelections: new Set([selection.linkedField]),
-              unsub: liveModel.subscribe(() => {
-                const newRecordSource = new RelayRecordSource();
-                if (selection.linkedField.concreteType == null) {
-                  throw new Error('TODO: support abstract types');
-                }
-                const resolverResult = liveModel.read();
-                if (resolverResult == null) {
-                  throw new Error('Support null resolver results');
-                }
-                if (selection.linkedField.concreteType == null) {
-                  throw new Error('TODO: support abstract types');
-                }
-
-                const typeName = selection.linkedField.concreteType;
-                //  ??  this._getRecordType(resolverResult);
-
-                const newRecord = RelayModernRecord.create(nextID, typeName);
-                newRecordSource.set(nextID, newRecord);
-                const normalizer = new RelayResponseNormalizer(
-                  newRecordSource,
-                  this._variables,
-                  {
-                    getDataID: this._getDataId,
-                    treatMissingFieldsAsNull: this._treatMissingFieldsAsNull,
-                  },
-                  this._sink,
-                );
-                normalizer._modelCache = this._modelCache;
-                normalizer._currentModel = resolverResult;
-                const payload = normalizer.normalizeResponse(
+              unsub: liveModel.subscribe(
+                makeHandler(
                   selection.linkedField,
                   nextID,
-                  {},
-                );
-                this._sink.next(payload);
-                //
-              }),
+                  this._variables,
+                  this._sink,
+                  this._getDataId,
+                  this._modelCache,
+                ),
+              ),
             };
             this._modelCache.set(nextID, modelState);
           } else {
@@ -428,7 +402,7 @@ class RelayResponseNormalizer {
       throw new Error('TODO: expected resolverModule');
     }
     if (this._currentModel == null) {
-      throw new Error('Expected model');
+      throw new Error('Expected current model');
     }
     const resolverResult = resolver.resolverModule(this._currentModel);
     if (resolverResult == null) {
@@ -443,7 +417,6 @@ class RelayResponseNormalizer {
         'TODO: What about live resolvers that are not client edges?',
       );
     }
-    // Read live resolver eagerly.
     const storageKey = getStorageKey(resolver, this._variables);
     RelayModernRecord.setValue(record, storageKey, resolverResult);
   }
@@ -739,6 +712,53 @@ class RelayResponseNormalizer {
       );
     }
   }
+}
+
+// TODO: Make a class to manage these
+function makeHandler(
+  linkedField: NormalizationLinkedField,
+  nextID: DataID,
+  variables: Variables,
+  sink: Sink<RelayResponsePayload>,
+  getDataID: GetDataID,
+  modelCache: ModelCache,
+) {
+  return function handler() {
+    const newRecordSource = new RelayRecordSource();
+    if (linkedField.concreteType == null) {
+      throw new Error('TODO: support abstract types');
+    }
+    const modelState = modelCache.get(nextID);
+    if (modelState == null) {
+      throw new Error('Expected to find model state');
+    }
+    const resolverResult = modelState.liveState.read();
+    if (resolverResult == null) {
+      throw new Error('Support null resolver results');
+    }
+    if (linkedField.concreteType == null) {
+      throw new Error('TODO: support abstract types');
+    }
+
+    const typeName = linkedField.concreteType;
+    //  ??  this._getRecordType(resolverResult);
+
+    const newRecord = RelayModernRecord.create(nextID, typeName);
+    newRecordSource.set(nextID, newRecord);
+    const normalizer = new RelayResponseNormalizer(
+      newRecordSource,
+      variables,
+      {
+        getDataID,
+        treatMissingFieldsAsNull: false,
+      },
+      sink,
+    );
+    normalizer._modelCache = modelCache;
+    normalizer._currentModel = resolverResult;
+    const payload = normalizer.normalizeResponse(linkedField, nextID, {});
+    sink.next(payload);
+  };
 }
 
 module.exports = {
