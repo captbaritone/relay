@@ -320,17 +320,33 @@ class RelayResponseNormalizer {
               subscribedSelections: new Set([selection.linkedField]),
               unsub: liveModel.subscribe(() => {
                 const newRecordSource = new RelayRecordSource();
-                // TODO: Typename?
-                const newRecord = RelayModernRecord.create(nextID, 'User');
+                if (selection.linkedField.concreteType == null) {
+                  throw new Error('TODO: support abstract types');
+                }
+                const resolverResult = liveModel.read();
+                if (resolverResult == null) {
+                  throw new Error('Support null resolver results');
+                }
+                if (selection.linkedField.concreteType == null) {
+                  throw new Error('TODO: support abstract types');
+                }
+
+                const typeName = selection.linkedField.concreteType;
+                //  ??  this._getRecordType(resolverResult);
+
+                const newRecord = RelayModernRecord.create(nextID, typeName);
                 newRecordSource.set(nextID, newRecord);
                 const normalizer = new RelayResponseNormalizer(
                   newRecordSource,
                   this._variables,
-                  {},
+                  {
+                    getDataID: this._getDataId,
+                    treatMissingFieldsAsNull: this._treatMissingFieldsAsNull,
+                  },
                   this._sink,
                 );
                 normalizer._modelCache = this._modelCache;
-                normalizer._currentModel = liveModel.read();
+                normalizer._currentModel = resolverResult;
                 const payload = normalizer.normalizeResponse(
                   selection.linkedField,
                   nextID,
@@ -342,10 +358,11 @@ class RelayResponseNormalizer {
             };
             this._modelCache.set(nextID, modelState);
           } else {
-            // TODO: How to avoid this?
+            // TODO: How to avoid this in the case that we've already been here??
             modelState.subscribedSelections.add(selection.linkedField);
           }
 
+          // TODO: Should we cache the last read value?
           const model = modelState.liveState.read();
 
           const prevModel = this._currentModel;
@@ -357,7 +374,7 @@ class RelayResponseNormalizer {
           // Normalizer expects to find the data for the linked field in the response.
           data[responseKey] = {};
 
-          this._normalizeField(selection, selection.linkedField, record, data);
+          this._normalizeField(node, selection.linkedField, record, data);
 
           this._currentModel = prevModel;
 
