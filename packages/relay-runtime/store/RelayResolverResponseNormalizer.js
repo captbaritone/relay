@@ -99,6 +99,7 @@ function normalize(
 
 type ModelState = {
   liveState: LiveState<mixed>,
+  // TODO: What about variables?
   subscribedSelections: Set<NormalizationLinkedField>,
   unsub: () => void,
 };
