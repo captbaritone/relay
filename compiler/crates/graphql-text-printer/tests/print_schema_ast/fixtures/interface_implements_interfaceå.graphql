@@ -1,0 +1,6 @@
+interface Actor {
+  name: string
+}
+interface Person implements Actor {
+  name: string
+}

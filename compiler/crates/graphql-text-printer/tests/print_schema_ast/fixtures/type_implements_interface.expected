@@ -1,16 +1,15 @@
 ==================================== INPUT ====================================
-schema {
-  query: Query
+interface Person {
+  name: string
 }
-
-type Query {
-  hello: String
+type User implements Person {
+  name: string
 }
 ==================================== OUTPUT ===================================
-schema {
-  query: Query
+interface Person {
+  name: string
 }
 
-type Query {
-  hello: String
+type User implements Person {
+  name: string
 }

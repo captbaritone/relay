@@ -1,16 +1,15 @@
 ==================================== INPUT ====================================
-schema {
-  query: Query
+interface Actor {
+  name: string
 }
-
-type Query {
-  hello: String
+interface Person implements Actor {
+  name: string
 }
 ==================================== OUTPUT ===================================
-schema {
-  query: Query
+interface Actor {
+  name: string
 }
 
-type Query {
-  hello: String
+interface Person implements Actor {
+  name: string
 }

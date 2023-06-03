@@ -13,11 +13,16 @@ use graphql_syntax::ConstantArgument;
 use graphql_syntax::ConstantDirective;
 use graphql_syntax::Directive;
 use graphql_syntax::ExecutableDefinition;
+use graphql_syntax::FieldDefinition;
 use graphql_syntax::FragmentDefinition;
 use graphql_syntax::FragmentSpread;
+use graphql_syntax::Identifier;
 use graphql_syntax::InlineFragment;
+use graphql_syntax::InterfaceTypeDefinition;
 use graphql_syntax::LinkedField;
 use graphql_syntax::List;
+use graphql_syntax::ObjectTypeDefinition;
+use graphql_syntax::ObjectTypeExtension;
 use graphql_syntax::OperationDefinition;
 use graphql_syntax::OperationType;
 use graphql_syntax::OperationTypeDefinition;
@@ -25,6 +30,7 @@ use graphql_syntax::ScalarField;
 use graphql_syntax::SchemaDefinition;
 use graphql_syntax::Selection;
 use graphql_syntax::TypeSystemDefinition;
+use graphql_syntax::UnionTypeDefinition;
 use graphql_syntax::VariableDefinition;
 
 pub fn print_operation_ast(node: &OperationDefinition) -> String {
@@ -235,7 +241,48 @@ impl Printer {
     fn print_type_system_definition(&mut self, node: &TypeSystemDefinition) -> FmtResult {
         match node {
             TypeSystemDefinition::SchemaDefinition(node) => self.print_schema_definition(node),
-            _ => panic!("Unsupported type system definition: {:?}", node),
+            TypeSystemDefinition::SchemaExtension(_) => {
+                writeln!(self.output, "TODO schema extension")
+            }
+            TypeSystemDefinition::EnumTypeDefinition(_) => {
+                writeln!(self.output, "TODO enum type definition")
+            }
+            TypeSystemDefinition::EnumTypeExtension(_) => {
+                writeln!(self.output, "TODO enum type extension")
+            }
+            TypeSystemDefinition::InterfaceTypeDefinition(node) => {
+                self.print_interface_type_definition(node)
+            }
+            TypeSystemDefinition::InterfaceTypeExtension(_) => {
+                writeln!(self.output, "TODO interface type extension")
+            }
+            TypeSystemDefinition::ObjectTypeDefinition(node) => {
+                self.print_object_type_definition(node)
+            }
+            TypeSystemDefinition::ObjectTypeExtension(node) => {
+                self.print_object_type_extension(node)
+            }
+            TypeSystemDefinition::UnionTypeDefinition(node) => {
+                self.print_union_type_definition(node)
+            }
+            TypeSystemDefinition::UnionTypeExtension(_) => {
+                writeln!(self.output, "TODO union type extension")
+            }
+            TypeSystemDefinition::InputObjectTypeDefinition(_) => {
+                writeln!(self.output, "TODO input object type definition")
+            }
+            TypeSystemDefinition::InputObjectTypeExtension(_) => {
+                writeln!(self.output, "TODO input object type extension")
+            }
+            TypeSystemDefinition::ScalarTypeDefinition(_) => {
+                writeln!(self.output, "TODO scalar type definition")
+            }
+            TypeSystemDefinition::ScalarTypeExtension(_) => {
+                writeln!(self.output, "TODO scalar type extension")
+            }
+            TypeSystemDefinition::DirectiveDefinition(_) => {
+                writeln!(self.output, "TODO directive definition")
+            }
         }
     }
 
@@ -291,6 +338,93 @@ impl Printer {
             OperationType::Subscription => write!(self.output, "subscription: ")?,
         }
         writeln!(self.output, "{}", node.type_)?;
+
+        Ok(())
+    }
+
+    fn print_object_type_definition(&mut self, node: &ObjectTypeDefinition) -> FmtResult {
+        write!(self.output, "type {}", node.name)?;
+        self.print_implements_interfaces(&node.interfaces)?;
+        self.print_constant_directives(&node.directives)?;
+        if let Some(fields) = &node.fields {
+            self.print_field_definitions(&fields)?;
+        }
+
+        Ok(())
+    }
+
+    fn print_object_type_extension(&mut self, node: &ObjectTypeExtension) -> FmtResult {
+        write!(self.output, "extend type {}", node.name)?;
+        self.print_implements_interfaces(&node.interfaces)?;
+        self.print_constant_directives(&node.directives)?;
+        if let Some(fields) = &node.fields {
+            self.print_field_definitions(&fields)?;
+        }
+
+        Ok(())
+    }
+
+    fn print_interface_type_definition(&mut self, node: &InterfaceTypeDefinition) -> FmtResult {
+        write!(self.output, "interface {}", node.name)?;
+        self.print_implements_interfaces(&node.interfaces)?;
+        self.print_constant_directives(&node.directives)?;
+        if let Some(fields) = &node.fields {
+            self.print_field_definitions(&fields)?;
+        }
+
+        Ok(())
+    }
+
+    fn print_union_type_definition(&mut self, node: &UnionTypeDefinition) -> FmtResult {
+        write!(self.output, "union {}", node.name)?;
+        self.print_constant_directives(&node.directives)?;
+        if node.members.is_empty() {
+            return Ok(());
+        }
+        write!(self.output, " = ")?;
+        let last = node.members.last();
+        for type_ in &node.members {
+            write!(self.output, "{}", type_)?;
+            if let Some(last) = last {
+                if last != type_ {
+                    write!(self.output, " | ")?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn print_implements_interfaces(&mut self, interfaces: &[Identifier]) -> FmtResult {
+        if interfaces.is_empty() {
+            return Ok(());
+        }
+        write!(self.output, " implements ")?;
+        let last = interfaces.last();
+        for interface in interfaces {
+            write!(self.output, "{}", interface)?;
+            if let Some(last) = last {
+                if last != interface {
+                    write!(self.output, ", ")?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn print_field_definitions(&mut self, fields: &List<FieldDefinition>) -> FmtResult {
+        writeln!(self.output, " {{")?;
+        for field in &fields.items {
+            self.print_field_definition(field)?;
+        }
+        writeln!(self.output, "}}")?;
+
+        Ok(())
+    }
+
+    fn print_field_definition(&mut self, node: &FieldDefinition) -> FmtResult {
+        writeln!(self.output, "  {}", node)?;
 
         Ok(())
     }

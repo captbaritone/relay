@@ -1,16 +1,8 @@
 ==================================== INPUT ====================================
-schema {
-  query: Query
-}
-
 type Query {
-  hello: String
+  hello: String @some_directive(name: "hello")
 }
 ==================================== OUTPUT ===================================
-schema {
-  query: Query
-}
-
 type Query {
-  hello: String
+  hello: String @some_directive(name: "hello")
 }
