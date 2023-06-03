@@ -16,6 +16,7 @@ crates/graphql-syntax/tests/print
 crates/graphql-text-printer/tests/compact
 crates/graphql-text-printer/tests/operation_printer
 crates/graphql-text-printer/tests/print_ast
+crates/graphql-text-printer/tests/print_schema_ast
 crates/graphql-text-printer/tests/print
 crates/relay-codegen/tests/aliased_fragments
 crates/relay-codegen/tests/client_edges

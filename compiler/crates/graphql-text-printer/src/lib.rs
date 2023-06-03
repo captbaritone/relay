@@ -16,6 +16,7 @@ mod print_to_text;
 pub use print_ast_to_text::print_executable_definition_ast;
 pub use print_ast_to_text::print_fragment_ast;
 pub use print_ast_to_text::print_operation_ast;
+pub use print_ast_to_text::print_type_system_definition_ast;
 pub use print_full_operation::print_full_operation;
 pub use print_full_operation::OperationPrinter;
 pub use print_to_text::print_arguments;
