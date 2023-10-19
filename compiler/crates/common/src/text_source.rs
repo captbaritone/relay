@@ -71,7 +71,7 @@ impl TextSource {
         Range::new(start_position, end_position)
     }
 
-    pub fn to_span_range(&self, span: Span) -> lsp_types::Range {
+    pub fn to_span_range(&self, span: Span) -> Range {
         let start = span.start as usize;
         let end = span.end as usize;
         // Zero-indexed line offset in the document

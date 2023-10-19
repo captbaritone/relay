@@ -5,6 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+use std::collections::HashMap;
 use std::env;
 use std::env::current_dir;
 use std::path::PathBuf;
@@ -14,14 +15,25 @@ use std::sync::Arc;
 use clap::ArgEnum;
 use clap::Parser;
 use common::ConsoleLogger;
+use common::PerfLogger;
 use intern::string_key::Intern;
 use log::error;
 use log::info;
+use relay_codemods::rename_field;
+use relay_codemods::Edit;
 use relay_compiler::build_project::artifact_writer::ArtifactValidationWriter;
+use relay_compiler::build_project::get_project_asts;
+use relay_compiler::build_project::ProjectAstData;
+use relay_compiler::build_raw_program;
+use relay_compiler::build_schema;
 use relay_compiler::compiler::Compiler;
 use relay_compiler::config::Config;
 use relay_compiler::errors::Error as CompilerError;
+use relay_compiler::source_for_location;
+use relay_compiler::FileSource;
 use relay_compiler::FileSourceKind;
+use relay_compiler::FsSourceReader;
+use relay_compiler::GraphQLAsts;
 use relay_compiler::LocalPersister;
 use relay_compiler::OperationPersister;
 use relay_compiler::PersistConfig;
@@ -118,10 +130,33 @@ struct LspCommand {
     locate_command: Option<String>,
 }
 
+#[derive(Parser)]
+#[clap(
+    about = "Run the language server. Used by IDEs.",
+    rename_all = "camel_case"
+)]
+struct CodemodCommand {
+    // TODO: Docs
+    /// Run the LSP using this config file. If not provided, searches for a config in
+    /// package.json under the `relay` key or `relay.config.json` files among other up
+    /// from the current working directory.
+    config: Option<PathBuf>,
+
+    // Compile only this project. You can pass this argument multiple times.
+    /// to compile multiple projects. If excluded, all projects will be compiled.
+    #[clap(name = "project", long, short)]
+    projects: Vec<String>,
+
+    /// Verbosity level
+    #[clap(long, arg_enum, default_value = "quiet-with-errors")]
+    output: OutputKind,
+}
+
 #[derive(clap::Subcommand)]
 enum Commands {
     Compiler(CompileCommand),
     Lsp(LspCommand),
+    Codemod(CodemodCommand),
 }
 
 #[derive(ArgEnum, Clone, Copy)]
@@ -178,6 +213,7 @@ async fn main() {
     let result = match command {
         Commands::Compiler(command) => handle_compiler_command(command).await,
         Commands::Lsp(command) => handle_lsp_command(command).await,
+        Commands::Codemod(command) => handle_codemod_command(command).await,
     };
 
     match result {
@@ -395,6 +431,77 @@ async fn handle_lsp_command(command: LspCommand) -> Result<(), Error> {
     })?;
 
     info!("Relay LSP exited successfully.");
+
+    Ok(())
+}
+
+async fn handle_codemod_command(command: CodemodCommand) -> Result<(), Error> {
+    configure_logger(command.output, TerminalMode::Mixed);
+
+    let mut config = get_config(command.config)?;
+
+    set_project_flag(&mut config, command.projects)?;
+
+    config.file_source_config = FileSourceKind::WalkDir;
+
+    let perf_logger = ConsoleLogger;
+    let setup_event = perf_logger.create_event("compiler_setup");
+
+    let file_source = FileSource::connect(&config, &setup_event).await.unwrap();
+    let compiler_state = file_source.query(&setup_event, &perf_logger).await.unwrap();
+
+    let dirty_artifact_sources = compiler_state.get_dirty_artifact_sources(&config);
+    let graphql_asts = GraphQLAsts::from_graphql_sources_map(
+        &compiler_state.graphql_sources,
+        &dirty_artifact_sources,
+    )
+    .unwrap();
+
+    let source_reader = FsSourceReader;
+
+    for (_project_name, project_config) in config.projects {
+        let log_event = perf_logger.create_event("build_project");
+        let schema = build_schema(&compiler_state, &project_config, &graphql_asts).unwrap();
+
+        let ProjectAstData { project_asts, .. } =
+            get_project_asts(&schema, &graphql_asts, &project_config).unwrap();
+
+        let is_incremental_build = false;
+        let (program, _) = build_raw_program(
+            &project_config,
+            project_asts,
+            schema,
+            &log_event,
+            is_incremental_build,
+        )
+        .unwrap();
+
+        let mut edits_by_file: HashMap<&str, Vec<Edit>> = Default::default();
+
+        for edit in rename_field(&program) {
+            let edits_for_file = edits_by_file
+                .entry(edit.location.source_location().path())
+                .or_insert_with(Default::default);
+            edits_for_file.push(edit);
+        }
+
+        let root_dir = config.root_dir.clone();
+
+        for (file_path, edits) in edits_by_file {
+            for edit in edits {
+                let source =
+                    source_for_location(&root_dir, edit.location.source_location(), &source_reader)
+                        .unwrap();
+                let range = source.text_source().to_span_range(edit.location.span());
+                println!(
+                    "edit: {}:{:?} => {:?}",
+                    edit.location.source_location().path(),
+                    range,
+                    edit.new_text
+                )
+            }
+        }
+    }
 
     Ok(())
 }

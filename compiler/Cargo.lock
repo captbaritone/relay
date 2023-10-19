@@ -1619,6 +1619,7 @@ dependencies = [
  "common",
  "intern",
  "log",
+ "relay-codemods",
  "relay-compiler",
  "relay-lsp",
  "schema",
@@ -1648,6 +1649,33 @@ dependencies = [
  "relay-transforms",
  "schema",
  "tokio",
+]
+
+[[package]]
+name = "relay-codemods"
+version = "0.0.0"
+dependencies = [
+ "common",
+ "dashmap",
+ "docblock-shared",
+ "errors",
+ "fnv",
+ "graphql-ir",
+ "graphql-ir-validations",
+ "graphql-syntax",
+ "graphql-text-printer",
+ "indexmap",
+ "intern",
+ "itertools",
+ "lazy_static",
+ "lsp-types",
+ "once_cell",
+ "parking_lot",
+ "regex",
+ "relay-config",
+ "rustc-hash",
+ "schema",
+ "thiserror",
 ]
 
 [[package]]

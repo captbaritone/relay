@@ -16,6 +16,7 @@ members = [
     "crates/persist-query",
     "crates/relay-bin",
     "crates/relay-codegen",
+    "crates/relay-codemods",
     "crates/relay-compiler",
     "crates/relay-compiler-playground",
     "crates/relay-lsp",
