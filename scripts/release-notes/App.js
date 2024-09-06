@@ -42,6 +42,7 @@ function CommitCard({
   message,
   summary,
   author,
+  commitHash,
   date,
   selectedCategory,
   onCategoryChange,
@@ -50,6 +51,12 @@ function CommitCard({
     <div className={`commit ${selectedCategory}`} title={message}>
       <p className="summary">{summary}</p>
       <p className="author">{author}</p>
+
+      <p>
+        <a href={commitUrl(commitHash)} target="_blank">
+          Commit {`${commitHash.slice(0, 6)}`}
+        </a>
+      </p>
       <CategoryPicker onPick={category => onCategoryChange(category)} />
     </div>
   );
@@ -57,13 +64,14 @@ function CommitCard({
 
 // eslint-disable-next-line no-unused-vars
 function App({commits, lastRelease}) {
-  let initialState = localStorage.getItem('selectedCategories');
-  if (initialState != null) {
-    initialState = JSON.parse(initialState);
-  } else {
-    initialState = {};
-  }
-  const [selectedCategories, setSelectedCategories] = useState(initialState);
+  const [selectedCategories, setSelectedCategories] = useState(() => {
+    const initialState = localStorage.getItem('selectedCategories');
+    if (initialState != null) {
+      return JSON.parse(initialState);
+    } else {
+      return {};
+    }
+  });
   useEffect(() => {
     localStorage.setItem(
       'selectedCategories',
@@ -76,8 +84,8 @@ function App({commits, lastRelease}) {
       <h1>Relay commits since {lastRelease}</h1>
       <div className="instructions">
         <p>
-          Click on the commit card to change it's category. Possible categories
-          are:{' '}
+          Click on the category button on the commit card to change it's
+          category. Possible categories are:{' '}
         </p>
         <Categories />
       </div>
@@ -87,6 +95,7 @@ function App({commits, lastRelease}) {
             return (
               <CommitCard
                 key={index}
+                commitHash={commit.hash}
                 message={commit.message}
                 summary={commit.summary}
                 author={commit.author}
@@ -136,8 +145,10 @@ function CategoryPicker({onPick}) {
     <ul className="categories-picker">
       {CATEGORIES.map(([category]) => {
         return (
-          <li className="category" key={category}>
-            <button onClick={() => onPick(category)}>{category}</button>
+          <li key={category} className="category">
+            <button onClick={() => onPick(category)} className={category}>
+              {category}
+            </button>
           </li>
         );
       })}
@@ -179,13 +190,13 @@ function GeneratedReleaseNotes({commits, selectedCategories, lastRelease}) {
 
   return (
     <div className="release_notes_content">
-      {`# Version ${nextReleaseVersion(lastRelease, hasBreakingChanges, hasNewApi)} Release Notes\n`}
+      <h1>{`# Version ${nextReleaseVersion(lastRelease, hasBreakingChanges, hasNewApi)} Release Notes\n`}</h1>
       <div>
         {Array.from(categorizedCommits).map(([category, commits]) => {
           if (commits.length) {
             return (
               <div key={category}>
-                {`## ${CATEGORIES_NAMES[category]}`}
+                <h2>{`## ${CATEGORIES_NAMES[category]}`}</h2>
                 <CommitList commits={commits} />
               </div>
             );
@@ -194,7 +205,7 @@ function GeneratedReleaseNotes({commits, selectedCategories, lastRelease}) {
           }
         })}
         <div>
-          {`## Non-categorized commits\n`}
+          <h2>{`## Non-categorized commits\n`}</h2>
           <CommitList commits={nonCategorizedCommits} />
         </div>
       </div>
@@ -209,8 +220,8 @@ function CommitList({commits}) {
         return (
           <li key={commit.hash}>
             {'- '}[
-            <a href={`${REPO_URL}/commit/${commit.hash}`} target="_blank">
-              {commit.hash}
+            <a href={commitUrl(commit.hash)} target="_blank">
+              {commit.hash.slice(0, 6)}
             </a>
             ]: {capitalize(commit.summary)} by {commit.author}
           </li>
@@ -237,4 +248,8 @@ function next(versionStr) {
 
 function capitalize(string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+function commitUrl(hash) {
+  return `${REPO_URL}/commit/${hash}`;
 }
