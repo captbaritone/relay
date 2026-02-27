@@ -558,6 +558,30 @@ class RelayModernStore implements Store {
     return updatedOwners;
   }
 
+  recordOperationEpoch(sourceOperation: OperationDescriptor): void {
+    const id = sourceOperation.request.identifier;
+    const rootEntry = this._roots.get(id);
+    if (rootEntry != null) {
+      rootEntry.epoch = this._currentWriteEpoch;
+      rootEntry.fetchTime = Date.now();
+    } else if (
+      sourceOperation.request.node.params.operationKind === 'query' &&
+      this._gcReleaseBufferSize > 0 &&
+      this._releaseBuffer.length < this._gcReleaseBufferSize
+    ) {
+      const temporaryRootEntry = {
+        operation: sourceOperation,
+        refCount: 0,
+        epoch: this._currentWriteEpoch,
+        fetchTime: Date.now(),
+      };
+      this._releaseBuffer.push(id);
+      /* $FlowFixMe[incompatible-type] Natural Inference rollout. See
+       * https://fburl.com/gdoc/y8dn025u */
+      this._roots.set(id, temporaryRootEntry);
+    }
+  }
+
   publish(source: RecordSource, idsMarkedForInvalidation?: DataIDSet): void {
     const target = this._getMutableRecordSource();
     updateTargetFromSource(

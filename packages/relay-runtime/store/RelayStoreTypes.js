@@ -383,6 +383,13 @@ export interface Store {
   getEpoch(): number;
 
   /**
+   * Record the current epoch for a source operation, without running a
+   * full notify cycle. Used by batched network responses to record epochs
+   * for additional operations beyond the first one passed to notify().
+   */
+  recordOperationEpoch(sourceOperation: OperationDescriptor): void;
+
+  /**
    * Get the current operation loader if it exists
    */
   getOperationLoader(): ?OperationLoader;
@@ -810,6 +817,17 @@ export type LiveResolverBatchEndLogEvent = {
   +name: 'liveresolver.batch.end',
 };
 
+export type PublishQueueBatchStartLogEvent = {
+  +name: 'publishqueue.batch.start',
+};
+
+export type PublishQueueBatchCompleteLogEvent = {
+  +name: 'publishqueue.batch.complete',
+  +batchSize: number,
+  +operationNames: Array<string>,
+  +batchDuration: number,
+};
+
 export type UseFragmentSubscriptionMissedUpdates = {
   +name: 'useFragment.subscription.missedUpdates',
   +hasDataChanges: boolean,
@@ -874,6 +892,8 @@ export type LogEvent =
   | EntrypointRootConsumeLogEvent
   | LiveResolverBatchStartLogEvent
   | LiveResolverBatchEndLogEvent
+  | PublishQueueBatchStartLogEvent
+  | PublishQueueBatchCompleteLogEvent
   | UseFragmentSubscriptionMissedUpdates
   | FetchQueryFetchLogEvent
   | ReaderRead
@@ -1536,6 +1556,16 @@ export interface PublishQueue {
    * that was being processed to produce this run.
    */
   run(sourceOperation?: OperationDescriptor): ReadonlyArray<RequestDescriptor>;
+
+  /**
+   * Like run(), but deferred via the BATCH_NETWORK_RESPONSES_FN scheduler.
+   * Multiple calls are coalesced into a single run(). If batching is not
+   * enabled (flag is null), falls back to calling run() synchronously.
+   */
+  scheduleBatchedRun(
+    sourceOperation: ?OperationDescriptor,
+    callback: (updatedOwners: ReadonlyArray<RequestDescriptor>) => void,
+  ): void;
 }
 
 /**

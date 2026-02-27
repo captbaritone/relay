@@ -112,6 +112,13 @@ class RelayPublishQueue implements PublishQueue {
   _gcHold: ?Disposable;
   _isRunning: ?boolean;
 
+  // Batch state for scheduleBatchedRun()
+  _pendingBatchDisposable: ?Disposable;
+  _pendingBatchCallbacks: Array<
+    (ReadonlyArray<RequestDescriptor>) => void,
+  >;
+  _pendingBatchOperations: Array<?OperationDescriptor>;
+
   constructor(
     store: Store,
     handlerProvider?: ?HandlerProvider,
@@ -130,6 +137,9 @@ class RelayPublishQueue implements PublishQueue {
     this._getDataID = getDataID;
     this._missingFieldHandlers = missingFieldHandlers;
     this._log = log;
+    this._pendingBatchDisposable = null;
+    this._pendingBatchCallbacks = [];
+    this._pendingBatchOperations = [];
   }
 
   /**
@@ -280,6 +290,71 @@ class RelayPublishQueue implements PublishQueue {
     }
     this._isRunning = false;
     return this._store.notify(sourceOperation, invalidatedStore);
+  }
+
+  /**
+   * Like run(), but deferred via the BATCH_NETWORK_RESPONSES_FN scheduler.
+   * Multiple calls are coalesced into a single run(). If batching is not
+   * enabled (flag is null), falls back to calling run() synchronously.
+   */
+  scheduleBatchedRun(
+    sourceOperation: ?OperationDescriptor,
+    callback: (updatedOwners: ReadonlyArray<RequestDescriptor>) => void,
+  ): void {
+    const batchFn = RelayFeatureFlags.BATCH_NETWORK_RESPONSES_FN;
+    if (batchFn == null) {
+      callback(this.run(sourceOperation ?? undefined));
+      return;
+    }
+
+    this._pendingBatchOperations.push(sourceOperation);
+    this._pendingBatchCallbacks.push(callback);
+
+    if (this._pendingBatchDisposable != null) {
+      return; // Already scheduled
+    }
+
+    const log = this._log;
+    if (log != null) {
+      log({name: 'publishqueue.batch.start'});
+    }
+    const batchStartTime = performance.now();
+
+    this._pendingBatchDisposable = batchFn(() => {
+      this._pendingBatchDisposable = null;
+      const operations = this._pendingBatchOperations;
+      const callbacks = this._pendingBatchCallbacks;
+      this._pendingBatchOperations = [];
+      this._pendingBatchCallbacks = [];
+
+      // Run once — processes all accumulated commitPayload() data.
+      // Pass the first non-null operation to run() for epoch tracking via notify().
+      const firstOperation = operations.find(op => op != null);
+      const updatedOwners = this.run(firstOperation ?? undefined);
+
+      // Record epochs for additional operations that weren't passed to notify()
+      for (let i = 0; i < operations.length; i++) {
+        const op = operations[i];
+        if (op != null && op !== firstOperation) {
+          this._store.recordOperationEpoch(op);
+        }
+      }
+
+      if (log != null) {
+        log({
+          name: 'publishqueue.batch.complete',
+          batchSize: callbacks.length,
+          operationNames: operations.map(
+            op => op?.request.node.params.name ?? '<unknown>',
+          ),
+          batchDuration: performance.now() - batchStartTime,
+        });
+      }
+
+      for (let i = 0; i < callbacks.length; i++) {
+        callbacks[i](updatedOwners);
+      }
+    });
   }
 
   /**

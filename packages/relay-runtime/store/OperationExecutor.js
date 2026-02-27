@@ -663,19 +663,50 @@ class Executor<TMutation: MutationParameters> {
     // If we have non-incremental responses, we passing `this._operation` to
     // the publish queue here, which will later be passed to the store (via
     // notify) to indicate that this operation caused the store to update
-    const updatedOwners = this._runPublishQueue(
+    const operationForRun =
       hasNonIncrementalResponses || hasNormalizedResponses
         ? this._operation
-        : undefined,
-    );
+        : undefined;
 
-    if (hasNonIncrementalResponses) {
-      if (this._incrementalPayloadsPending) {
-        this._retainData();
+    if (this._isClientPayload) {
+      // Client payloads (e.g. from env.commitPayload) are synchronous and
+      // should not be deferred via batching.
+      const updatedOwners = this._runPublishQueue(operationForRun);
+      if (hasNonIncrementalResponses) {
+        if (this._incrementalPayloadsPending) {
+          this._retainData();
+        }
+      }
+      this._updateOperationTracker(updatedOwners);
+      this._sink.next(response);
+    } else {
+      // Use deferred batched run for network responses. This allows multiple
+      // network responses arriving in the same event loop tick to be coalesced
+      // into a single store.notify() + React render cycle.
+      const responseToForward = response;
+      for (const actorIdentifier of this._getActorsToVisit()) {
+        const id = this._nextSubscriptionId++;
+        RelayObservable.create<empty>(sink => {
+          this._getPublishQueue(actorIdentifier).scheduleBatchedRun(
+            operationForRun,
+            updatedOwners => {
+              if (hasNonIncrementalResponses) {
+                if (this._incrementalPayloadsPending) {
+                  this._retainData();
+                }
+              }
+              this._updateOperationTracker(updatedOwners);
+              this._sink.next(responseToForward);
+              sink.complete();
+            },
+          );
+        }).subscribe({
+          complete: () => this._complete(id),
+          error: error => this._error(error),
+          start: subscription => this._start(id, subscription),
+        });
       }
     }
-    this._updateOperationTracker(updatedOwners);
-    this._sink.next(response);
   }
 
   _processOptimisticResponse(
