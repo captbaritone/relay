@@ -6,7 +6,9 @@
  */
 
 //! The config module provides functionality for managing the configuration of the Relay compiler.
+#[cfg(not(target_arch = "wasm32"))]
 use std::env::current_dir;
+#[cfg(not(target_arch = "wasm32"))]
 use std::ffi::OsStr;
 use std::fmt;
 use std::path::Path;
@@ -28,8 +30,8 @@ use graphql_ir::OperationDefinition;
 use graphql_ir::Program;
 use indexmap::IndexMap;
 use intern::string_key::StringKey;
+#[cfg(not(target_arch = "wasm32"))]
 use js_config_loader::LoaderSource;
-use persist_query::PersistError;
 use rayon::prelude::*;
 use regex::Regex;
 use relay_config::CustomType;
@@ -48,6 +50,7 @@ pub use relay_config::SchemaLocation;
 use relay_config::TypegenConfig;
 pub use relay_config::TypegenLanguage;
 use relay_docblock::DocblockIr;
+#[cfg(not(target_arch = "wasm32"))]
 use relay_saved_state_loader::SavedStateLoader;
 use relay_transforms::CustomTransformsConfig;
 use schemars::JsonSchema;
@@ -61,8 +64,16 @@ use serde::de::Error as DeError;
 use serde_json::Value;
 use sha1::Digest;
 use sha1::Sha1;
+#[cfg(not(target_arch = "wasm32"))]
 use tokio::sync::Notify;
+
+#[cfg(not(target_arch = "wasm32"))]
 use watchman_client::pdu::ScmAwareClockData;
+
+/// Stub for ScmAwareClockData on wasm32 where watchman_client is not available.
+#[cfg(target_arch = "wasm32")]
+#[derive(Default, Clone, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct ScmAwareClockData {}
 
 use crate::GraphQLAsts;
 use crate::build_project::AdditionalValidations;
@@ -77,10 +88,12 @@ use crate::errors::ConfigValidationError;
 use crate::errors::Error;
 use crate::errors::Result;
 use crate::path_validator::PathValidator;
+#[cfg(not(target_arch = "wasm32"))]
 use crate::source_control_for_root;
 use crate::status_reporter::BuildStatus;
 use crate::status_reporter::ConsoleStatusReporter;
 use crate::status_reporter::StatusReporter;
+#[cfg(not(target_arch = "wasm32"))]
 use crate::vfs::OsVfs;
 use crate::vfs::Vfs;
 
@@ -159,6 +172,7 @@ pub struct Config {
     pub repersist_operations: bool,
 
     pub saved_state_config: Option<ScmAwareClockData>,
+    #[cfg(not(target_arch = "wasm32"))]
     pub saved_state_loader: Option<Box<dyn SavedStateLoader + Send + Sync>>,
     pub saved_state_version: String,
 
@@ -217,13 +231,16 @@ pub struct Config {
 }
 
 pub enum FileSourceKind {
+    #[cfg(not(target_arch = "wasm32"))]
     Watchman,
     /// List with changed files in format "file_path,exists".
     /// This can be used to replace watchman queries
+    #[cfg(not(target_arch = "wasm32"))]
     External(PathBuf),
     WalkDir,
     /// Test file source for testing the daemon. Allows external test code to push
     /// file changes and trigger builds without requiring Watchman.
+    #[cfg(not(target_arch = "wasm32"))]
     Test(TestFileSourceConfig),
 }
 
@@ -232,12 +249,14 @@ pub enum FileSourceKind {
 /// This enables testing of watch mode by allowing external code to trigger
 /// file rescans. When notified, the compiler does a WalkDir rescan to find
 /// what files changed.
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Clone)]
 pub struct TestFileSourceConfig {
     /// Shared notify used for signaling file changes
     pub notify: Arc<Notify>,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl TestFileSourceConfig {
     pub fn new() -> Self {
         Self {
@@ -250,6 +269,7 @@ impl TestFileSourceConfig {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Default for TestFileSourceConfig {
     fn default() -> Self {
         Self::new()
@@ -278,6 +298,7 @@ fn normalize_path_from_config(
         .to_path_buf()
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl From<SingleProjectConfigFile> for Config {
     fn from(config: SingleProjectConfigFile) -> Self {
         Self::from_struct(
@@ -290,6 +311,7 @@ impl From<SingleProjectConfigFile> for Config {
 }
 
 impl Config {
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn search(start_dir: &Path) -> Result<Self> {
         Self::load_config(
             start_dir,
@@ -301,6 +323,7 @@ impl Config {
         )
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn load(config_path: PathBuf) -> Result<Self> {
         let loader = if config_path.extension() == Some(OsStr::new("js")) {
             LoaderSource::Js(config_path.display().to_string())
@@ -320,6 +343,7 @@ impl Config {
         )
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     fn load_config(start_dir: &Path, loaders_sources: &[LoaderSource]) -> Result<Self> {
         match js_config_loader::load(start_dir, loaders_sources) {
             Ok(Some(config)) => Self::from_struct(config.path, config.value, true),
@@ -360,6 +384,7 @@ impl Config {
     }
 
     /// Loads a config file without validation for use in tests.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn from_string_for_test(config_string: &str) -> Result<Self> {
         let path = PathBuf::from("/virtual/root/virtual_config.json");
         let config_file: ConfigFile =
@@ -384,6 +409,7 @@ impl Config {
     }
 
     /// `validate_fs` disables all filesystem checks for existence of files
+    #[cfg(not(target_arch = "wasm32"))]
     fn from_struct(
         config_path: PathBuf,
         config_file: ConfigFile,
@@ -551,9 +577,19 @@ impl Config {
         let config = Self {
             name: config_file.name,
             artifact_writer: Box::new(ArtifactFileWriter::new(
-                match config_file.no_source_control {
-                    Some(true) => None,
-                    _ => source_control_for_root(&root_dir),
+                {
+                    #[cfg(not(target_arch = "wasm32"))]
+                    {
+                        match config_file.no_source_control {
+                            Some(true) => None,
+                            _ => source_control_for_root(&root_dir),
+                        }
+                    }
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        let _ = config_file.no_source_control;
+                        None
+                    }
                 },
                 root_dir.clone(),
                 Arc::clone(&vfs),
@@ -576,6 +612,7 @@ impl Config {
             generate_virtual_id_file_name: None,
             get_artifacts_file_hash_map: None,
             saved_state_config: config_file.saved_state_config,
+            #[cfg(not(target_arch = "wasm32"))]
             saved_state_loader: None,
             saved_state_version: hex::encode(hash.finalize()),
             create_operation_persister: None,
@@ -584,7 +621,10 @@ impl Config {
             post_artifacts_write: None,
             additional_validations: None,
             is_dev_variable_name: config_file.is_dev_variable_name,
+            #[cfg(not(target_arch = "wasm32"))]
             file_source_config: FileSourceKind::Watchman,
+            #[cfg(target_arch = "wasm32")]
+            file_source_config: FileSourceKind::WalkDir,
             custom_transforms: None,
             custom_override_schema_determinator: None,
             export_persisted_query_ids_to_file: None,
@@ -873,6 +913,7 @@ impl fmt::Debug for Config {
             load_saved_state_file,
             generate_extra_artifacts,
             saved_state_config,
+            #[cfg(not(target_arch = "wasm32"))]
             saved_state_loader,
             saved_state_version,
             create_operation_persister,
@@ -884,7 +925,8 @@ impl fmt::Debug for Config {
             if option.is_some() { "Some(Fn)" } else { "None" }
         }
 
-        f.debug_struct("Config")
+        let mut debug_builder = f.debug_struct("Config");
+        let result = debug_builder
             .field("name", name)
             .field("root_dir", root_dir)
             .field("sources", sources)
@@ -904,12 +946,13 @@ impl fmt::Debug for Config {
             .field(
                 "generate_extra_artifacts",
                 &option_fn_to_string(generate_extra_artifacts),
-            )
-            .field(
+            );
+            #[cfg(not(target_arch = "wasm32"))]
+            let result = result.field(
                 "saved_state_loader",
                 &option_fn_to_string(saved_state_loader),
-            )
-            .field("saved_state_version", saved_state_version)
+            );
+            result.field("saved_state_version", saved_state_version)
             .field(
                 "post_artifacts_write",
                 &option_fn_to_string(post_artifacts_write),
@@ -978,7 +1021,7 @@ pub struct MultiProjectConfigFile {
     feature_flags: FeatureFlags,
 
     /// Watchman saved state config.
-    #[schemars(with = "Option<ScmAwareClockDataJsonSchemaDef>")]
+    #[cfg_attr(not(target_arch = "wasm32"), schemars(with = "Option<ScmAwareClockDataJsonSchemaDef>"))]
     saved_state_config: Option<ScmAwareClockData>,
 
     /// Then name of the global __DEV__ variable to use in generated artifacts
@@ -1360,6 +1403,27 @@ pub struct ConfigFileProject {
 
 pub type PersistId = String;
 
+#[cfg(not(target_arch = "wasm32"))]
+pub use persist_query::PersistError;
+
+/// Stub PersistError for wasm32 where persist-query is not available.
+#[cfg(target_arch = "wasm32")]
+#[derive(Debug, thiserror::Error)]
+pub enum PersistError {
+    #[error("IO Error: {source}")]
+    IOError {
+        #[from]
+        source: std::io::Error,
+    },
+    #[error("JSON Error: {source}")]
+    JsonError {
+        #[from]
+        source: serde_json::Error,
+    },
+    #[error("Persist error: {message}")]
+    ErrorResponse { message: String },
+}
+
 pub type PersistResult<T> = std::result::Result<T, PersistError>;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -1390,6 +1454,7 @@ pub trait OperationPersister {
 /// Holds extended clock data that includes source control aware
 /// query metadata.
 /// <https://facebook.github.io/watchman/docs/scm-query.html>
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(JsonSchema)]
 #[serde(remote = "ScmAwareClockData")]
 pub struct ScmAwareClockDataJsonSchemaDef {
@@ -1403,6 +1468,7 @@ pub struct ScmAwareClockDataJsonSchemaDef {
 /// Holds extended clock data that includes source control aware
 /// query metadata.
 /// <https://facebook.github.io/watchman/docs/scm-query.html>
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(JsonSchema)]
 #[serde(remote = "SavedStateClockData")]
 pub struct SavedStateClockDataJsonSchemaDef {

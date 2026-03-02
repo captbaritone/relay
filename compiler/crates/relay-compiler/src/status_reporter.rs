@@ -12,7 +12,9 @@
 //! * `JSONStatusReporter`: Reports the status to a JSON file using the `serde_json` crate.
 //! * `BuildStatus`: Wraps a base reporter (decorator pattern), delegating reporting while
 //!   also tracking build state for daemon/client synchronization.
+#[cfg(not(target_arch = "wasm32"))]
 use std::fs::OpenOptions;
+#[cfg(not(target_arch = "wasm32"))]
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -28,6 +30,7 @@ use log::info;
 use log::warn;
 use tokio::sync::Notify;
 
+#[cfg(not(target_arch = "wasm32"))]
 use crate::FsSourceReader;
 use crate::SourceReader;
 use crate::errors::BuildProjectError;
@@ -151,6 +154,14 @@ impl StatusReporter for BuildStatus {
 
     fn build_completes(&self, diagnostics: &[Diagnostic]) {
         self.base_reporter.build_completes(diagnostics);
+        #[cfg(not(target_arch = "wasm32"))]
+        let source_reader: &dyn SourceReader = &FsSourceReader;
+        #[cfg(target_arch = "wasm32")]
+        let vfs_reader = crate::file_source::VfsSourceReader {
+            vfs: std::sync::Arc::new(crate::vfs::InMemoryVfs::new()),
+        };
+        #[cfg(target_arch = "wasm32")]
+        let source_reader: &dyn SourceReader = &vfs_reader;
         self.set_build_result(BuildResult::Success(
             diagnostics
                 .iter()
@@ -158,7 +169,7 @@ impl StatusReporter for BuildStatus {
                 .map(|d| {
                     (
                         d.severity(),
-                        format_diagnostic(&self.root_dir, &FsSourceReader, d),
+                        format_diagnostic(&self.root_dir, source_reader, d),
                     )
                 })
                 .collect(),
@@ -168,9 +179,17 @@ impl StatusReporter for BuildStatus {
 
     fn build_errors(&self, error: &Error) {
         self.base_reporter.build_errors(error);
+        #[cfg(not(target_arch = "wasm32"))]
+        let source_reader: &dyn SourceReader = &FsSourceReader;
+        #[cfg(target_arch = "wasm32")]
+        let vfs_reader = crate::file_source::VfsSourceReader {
+            vfs: std::sync::Arc::new(crate::vfs::InMemoryVfs::new()),
+        };
+        #[cfg(target_arch = "wasm32")]
+        let source_reader: &dyn SourceReader = &vfs_reader;
         let messages = format_build_errors(
             &self.root_dir,
-            &FsSourceReader,
+            source_reader,
             self.is_multi_project,
             error,
         );
@@ -297,10 +316,22 @@ pub struct ConsoleStatusReporter {
 }
 
 impl ConsoleStatusReporter {
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn new(root_dir: PathBuf, is_multi_project: bool) -> Self {
         Self {
             root_dir,
             source_reader: Box::new(FsSourceReader),
+            is_multi_project,
+        }
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn new(root_dir: PathBuf, is_multi_project: bool) -> Self {
+        Self {
+            root_dir,
+            source_reader: Box::new(crate::file_source::VfsSourceReader {
+                vfs: std::sync::Arc::new(crate::vfs::InMemoryVfs::new()),
+            }),
             is_multi_project,
         }
     }
@@ -341,11 +372,13 @@ impl StatusReporter for ConsoleStatusReporter {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub struct JSONStatusReporter {
     path: Option<PathBuf>,
     base_reporter: Box<dyn StatusReporter + Send + Sync>,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl JSONStatusReporter {
     pub fn new(
         path: Option<PathBuf>,
@@ -358,6 +391,7 @@ impl JSONStatusReporter {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl StatusReporter for JSONStatusReporter {
     fn build_starts(&self) {}
 

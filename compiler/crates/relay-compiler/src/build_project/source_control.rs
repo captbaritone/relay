@@ -7,11 +7,15 @@
 
 use std::path::Path;
 use std::path::PathBuf;
+#[cfg(not(target_arch = "wasm32"))]
 use std::process::Command;
+#[cfg(not(target_arch = "wasm32"))]
 use std::process::Stdio;
 use std::sync::Mutex;
 
+#[cfg(not(target_arch = "wasm32"))]
 use log::debug;
+#[cfg(not(target_arch = "wasm32"))]
 use log::info;
 
 pub trait SourceControl {
@@ -24,12 +28,14 @@ pub trait SourceControl {
     ) -> crate::errors::Result<()>;
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 trait SourceControlStartAndStopCommands {
     fn start_tracking_command() -> Command;
 
     fn stop_tracking_command() -> Command;
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl<T> SourceControl for T
 where
     T: SourceControlStartAndStopCommands,
@@ -84,8 +90,10 @@ where
 /// Sapling is Meta's fork of Mercurial.
 /// Inside Meta, it is available as both
 /// `sl`, and `hg`.
+#[cfg(not(target_arch = "wasm32"))]
 struct Sapling;
 
+#[cfg(not(target_arch = "wasm32"))]
 impl SourceControlStartAndStopCommands for Sapling {
     fn start_tracking_command() -> Command {
         let mut command = Command::new("sl");
@@ -100,8 +108,10 @@ impl SourceControlStartAndStopCommands for Sapling {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 struct Git;
 
+#[cfg(not(target_arch = "wasm32"))]
 impl SourceControlStartAndStopCommands for Git {
     fn start_tracking_command() -> Command {
         let mut command = Command::new("git");
@@ -116,6 +126,7 @@ impl SourceControlStartAndStopCommands for Git {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn source_control_for_root(root_dir: &PathBuf) -> Option<Box<dyn SourceControl + Send + Sync>> {
     let check_git = Command::new("git")
         .arg("status")
@@ -159,5 +170,11 @@ pub fn source_control_for_root(root_dir: &PathBuf) -> Option<Box<dyn SourceContr
         }
     }
 
+    None
+}
+
+/// On wasm32, source control integration is not available.
+#[cfg(target_arch = "wasm32")]
+pub fn source_control_for_root(_root_dir: &PathBuf) -> Option<Box<dyn SourceControl + Send + Sync>> {
     None
 }

@@ -48,8 +48,10 @@ pub trait SourceReader {
 
 /// Default implementation of the file source reader
 /// that is directly using `fs` operations to read the content of the file
+#[cfg(not(target_arch = "wasm32"))]
 pub struct FsSourceReader;
 
+#[cfg(not(target_arch = "wasm32"))]
 impl SourceReader for FsSourceReader {
     fn read_file_to_string(&self, path: &Path) -> std::io::Result<String> {
         std::fs::read_to_string(path)

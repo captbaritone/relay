@@ -21,6 +21,7 @@ use thiserror::Error;
 
 use crate::SchemaLocation;
 use crate::config::Config;
+#[cfg(not(target_arch = "wasm32"))]
 use crate::errors::print_compiler_error;
 use crate::get_programs;
 
@@ -147,9 +148,17 @@ pub async fn compile_and_extract_subschema(
         .map(|(programs, _, _)| programs.values().cloned().collect::<Vec<_>>());
 
     let programs_vec = programs_result.map_err(|e| {
-        // Use print_compiler_error to get detailed error output with source context
-        let formatted_error = print_compiler_error(&root_dir, e);
-        SubschemaError::CompilationFailed(formatted_error)
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            // Use print_compiler_error to get detailed error output with source context
+            let formatted_error = print_compiler_error(&root_dir, e);
+            SubschemaError::CompilationFailed(formatted_error)
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            let _ = &root_dir;
+            SubschemaError::CompilationFailed(format!("{e}"))
+        }
     })?;
 
     // Expect exactly one program based on exactly one project asserted earlier

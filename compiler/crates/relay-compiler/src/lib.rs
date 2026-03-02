@@ -22,6 +22,7 @@ mod get_programs;
 mod graphql_asts;
 mod operation_persister;
 mod path_validator;
+#[cfg(not(target_arch = "wasm32"))]
 mod red_to_green;
 pub mod status_reporter;
 pub mod subschema_extraction;
@@ -56,20 +57,27 @@ pub use config::FileSourceKind;
 pub use config::LocalPersistConfig;
 pub use config::OperationPersister;
 pub use config::PersistConfig;
+pub use config::PersistError;
 pub use config::ProjectConfig;
 pub use config::RemotePersistConfig;
 pub use config::SchemaLocation;
+#[cfg(not(target_arch = "wasm32"))]
 pub use config::TestFileSourceConfig;
 pub use errors::CompilerErrorPrinter;
+#[cfg(not(target_arch = "wasm32"))]
 pub use errors::print_compiler_error;
+#[cfg(not(target_arch = "wasm32"))]
 pub use file_source::ExternalFileSourceResult;
 pub use file_source::File;
 pub use file_source::FileCategorizer;
 pub use file_source::FileGroup;
 pub use file_source::FileSource;
 pub use file_source::FileSourceResult;
+#[cfg(not(target_arch = "wasm32"))]
 pub use file_source::FileSourceSubscription;
+#[cfg(not(target_arch = "wasm32"))]
 pub use file_source::FileSourceSubscriptionNextChange;
+#[cfg(not(target_arch = "wasm32"))]
 pub use file_source::FsSourceReader;
 pub use file_source::SourceControlUpdateStatus;
 pub use file_source::SourceReader;
@@ -80,9 +88,11 @@ pub use get_programs::assert_programs;
 pub use get_programs::get_programs;
 pub use graphql_asts::GraphQLAsts;
 pub use operation_persister::LocalPersister;
+#[cfg(not(target_arch = "wasm32"))]
 pub use operation_persister::RemotePersister;
 pub use relay_config::ProjectName;
 pub use utils::get_parser_features;
 pub use vfs::InMemoryVfs;
+#[cfg(not(target_arch = "wasm32"))]
 pub use vfs::OsVfs;
 pub use vfs::Vfs;

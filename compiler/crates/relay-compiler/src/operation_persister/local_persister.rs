@@ -11,7 +11,6 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use dashmap::DashMap;
 use md5::Md5;
-use persist_query::PersistError;
 use relay_config::LocalPersistAlgorithm;
 use relay_config::LocalPersistConfig;
 use sha1::Digest;
@@ -20,6 +19,7 @@ use sha2::Sha256;
 
 use crate::OperationPersister;
 use crate::config::ArtifactForPersister;
+use crate::config::PersistError;
 use crate::vfs::Vfs;
 
 /// A local persister that stores GraphQL documents in a file on disk.

@@ -13,24 +13,38 @@
 //! * Applying transformations to the AST
 //! * Generating output files based on the transformed AST
 use std::collections::HashSet;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use common::Diagnostic;
 use common::PerfLogEvent;
 use common::PerfLogger;
 use common::WithDiagnostics;
+use dashmap::DashSet;
 use docblock_shared::ResolverSourceHash;
+use fnv::FnvBuildHasher;
+#[cfg(not(target_arch = "wasm32"))]
 use futures::future::join_all;
+#[cfg(not(target_arch = "wasm32"))]
 use graphql_watchman::WatchmanFileSourceSubscriptionNextChange;
 use log::debug;
+#[cfg(not(target_arch = "wasm32"))]
 use log::info;
 use rayon::prelude::*;
+use relay_config::ProjectName;
+use relay_transforms::Programs;
+use schema::SDLSchema;
+#[cfg(not(target_arch = "wasm32"))]
 use tokio::sync::Notify;
+#[cfg(not(target_arch = "wasm32"))]
 use tokio::task;
+#[cfg(not(target_arch = "wasm32"))]
 use tokio::task::JoinHandle;
 
+#[cfg(not(target_arch = "wasm32"))]
 use crate::FileSourceResult;
 use crate::artifact_map::ArtifactSourceKey;
+use crate::build_project::Artifact;
 use crate::build_project::BuildProjectFailure;
 use crate::build_project::build_project;
 use crate::build_project::commit_project;
@@ -42,9 +56,12 @@ use crate::config::Config;
 use crate::errors::Error;
 use crate::errors::Result;
 use crate::file_source::FileSource;
+#[cfg(not(target_arch = "wasm32"))]
 use crate::file_source::FileSourceSubscriptionNextChange;
 use crate::file_source::LocatedDocblockSource;
+use crate::file_source::SourceControlUpdateStatus;
 use crate::graphql_asts::GraphQLAsts;
+#[cfg(not(target_arch = "wasm32"))]
 use crate::red_to_green::RedToGreen;
 
 pub struct Compiler<TPerfLogger>
@@ -144,6 +161,7 @@ impl<TPerfLogger: PerfLogger> Compiler<TPerfLogger> {
         }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub async fn watch(&self) -> Result<()> {
         'watch: loop {
             let setup_event = self.perf_logger.create_event("compiler_setup");
@@ -255,6 +273,7 @@ impl<TPerfLogger: PerfLogger> Compiler<TPerfLogger> {
         }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     async fn incremental_build_loop(
         &self,
         mut compiler_state: CompilerState,
@@ -436,14 +455,27 @@ async fn build_projects<TPerfLogger: PerfLogger + 'static>(
         return Err(Error::Cancelled);
     }
 
-    let mut handles: Vec<JoinHandle<std::result::Result<_, BuildProjectFailure>>> = Vec::new();
+    // Prepare commit data for all results
+    struct CommitData<T> {
+        project_name: ProjectName,
+        schema: Arc<SDLSchema>,
+        programs: Programs,
+        artifacts: Vec<Artifact>,
+        diagnostics: Vec<Diagnostic>,
+        config: Arc<Config>,
+        perf_logger: Arc<T>,
+        artifact_map: Arc<ArtifactMapKind>,
+        removed_artifact_sources: Vec<ArtifactSourceKey>,
+        dirty_artifact_paths: DashSet<PathBuf, FnvBuildHasher>,
+        source_control_update_status: Arc<SourceControlUpdateStatus>,
+    }
+
+    let mut commit_data_list: Vec<CommitData<TPerfLogger>> = Vec::new();
     for WithDiagnostics {
         item: (project_name, schema, programs, artifacts),
         diagnostics,
     } in results
     {
-        let config = Arc::clone(&config);
-        let perf_logger = Arc::clone(&perf_logger);
         let artifact_map = compiler_state
             .artifacts
             .0
@@ -469,54 +501,116 @@ async fn build_projects<TPerfLogger: PerfLogger + 'static>(
             .cloned()
             .unwrap_or_default();
 
-        let source_control_update_status = Arc::clone(&compiler_state.source_control_update_status);
-        handles.push(task::spawn(async move {
-            let project_config = &config.projects[&project_name];
-            let artifact_map = commit_project(
-                &config,
-                project_config,
-                perf_logger,
-                &schema,
-                programs,
-                artifacts,
-                artifact_map,
-                removed_artifact_sources,
-                dirty_artifact_paths,
-                source_control_update_status,
-            )
-            .await?;
-            Ok(((project_name, artifact_map, schema), diagnostics))
-        }));
+        commit_data_list.push(CommitData {
+            project_name,
+            schema,
+            programs,
+            artifacts,
+            diagnostics,
+            config: Arc::clone(&config),
+            perf_logger: Arc::clone(&perf_logger),
+            artifact_map,
+            removed_artifact_sources,
+            dirty_artifact_paths,
+            source_control_update_status: Arc::clone(&compiler_state.source_control_update_status),
+        });
     }
     setup_event.stop(build_commit_state_timer);
 
     let commit_all_projects_timer = setup_event.start("commit_all_projects_time");
     let mut build_cancelled_during_commit = false;
     let mut all_diagnostics: Vec<Diagnostic> = Vec::new();
-    for commit_result in join_all(handles).await {
-        let commit_result: std::result::Result<std::result::Result<_, _>, _> = commit_result;
-        let mut inner_result = commit_result.map_err(|e| Error::JoinError {
-            error: e.to_string(),
-        })?;
-        match inner_result {
-            Ok(((project_name, next_artifact_map, schema), ref mut diagnostics)) => {
-                let next_artifact_map = Arc::new(ArtifactMapKind::Mapping(next_artifact_map));
-                compiler_state
-                    .artifacts
-                    .0
-                    .insert(project_name, next_artifact_map);
-                compiler_state.schema_cache.insert(project_name, schema);
 
-                all_diagnostics.append(diagnostics);
-            }
-            Err(BuildProjectFailure::Error(error)) => {
-                errors.push(error);
-            }
-            Err(BuildProjectFailure::Cancelled) => {
-                build_cancelled_during_commit = true;
+    // On native, spawn tasks concurrently with tokio::task::spawn.
+    // On wasm32, execute sequentially since tokio::task::spawn is not available.
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let mut handles: Vec<JoinHandle<std::result::Result<_, BuildProjectFailure>>> = Vec::new();
+        for data in commit_data_list {
+            handles.push(task::spawn(async move {
+                let project_config = &data.config.projects[&data.project_name];
+                let artifact_map = commit_project(
+                    &data.config,
+                    project_config,
+                    data.perf_logger,
+                    &data.schema,
+                    data.programs,
+                    data.artifacts,
+                    data.artifact_map,
+                    data.removed_artifact_sources,
+                    data.dirty_artifact_paths,
+                    data.source_control_update_status,
+                )
+                .await?;
+                Ok(((data.project_name, artifact_map, data.schema), data.diagnostics))
+            }));
+        }
+
+        for commit_result in join_all(handles).await {
+            let commit_result: std::result::Result<std::result::Result<_, _>, _> = commit_result;
+            let mut inner_result = commit_result.map_err(|e| Error::JoinError {
+                error: e.to_string(),
+            })?;
+            match inner_result {
+                Ok(((project_name, next_artifact_map, schema), ref mut diagnostics)) => {
+                    let next_artifact_map = Arc::new(ArtifactMapKind::Mapping(next_artifact_map));
+                    compiler_state
+                        .artifacts
+                        .0
+                        .insert(project_name, next_artifact_map);
+                    compiler_state.schema_cache.insert(project_name, schema);
+
+                    all_diagnostics.append(diagnostics);
+                }
+                Err(BuildProjectFailure::Error(error)) => {
+                    errors.push(error);
+                }
+                Err(BuildProjectFailure::Cancelled) => {
+                    build_cancelled_during_commit = true;
+                }
             }
         }
     }
+
+    #[cfg(target_arch = "wasm32")]
+    {
+        for data in commit_data_list {
+            let project_config = &data.config.projects[&data.project_name];
+            let result: std::result::Result<_, BuildProjectFailure> = commit_project(
+                &data.config,
+                project_config,
+                data.perf_logger,
+                &data.schema,
+                data.programs,
+                data.artifacts,
+                data.artifact_map,
+                data.removed_artifact_sources,
+                data.dirty_artifact_paths,
+                data.source_control_update_status,
+            )
+            .await
+            .map(|artifact_map| ((data.project_name, artifact_map, data.schema), data.diagnostics));
+            match result {
+                Ok(((project_name, next_artifact_map, schema), mut diagnostics)) => {
+                    let next_artifact_map = Arc::new(ArtifactMapKind::Mapping(next_artifact_map));
+                    compiler_state
+                        .artifacts
+                        .0
+                        .insert(project_name, next_artifact_map);
+                    compiler_state.schema_cache.insert(project_name, schema);
+
+                    all_diagnostics.append(&mut diagnostics);
+                }
+                Err(BuildProjectFailure::Error(error)) => {
+                    errors.push(error);
+                }
+                Err(BuildProjectFailure::Cancelled) => {
+                    build_cancelled_during_commit = true;
+                }
+            }
+        }
+    }
+
     setup_event.stop(commit_all_projects_timer);
 
     if !errors.is_empty() {

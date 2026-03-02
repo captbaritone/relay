@@ -10,6 +10,7 @@
 //! A file source represents a source code file that contains GraphQL code, such as files with `.graphql` or `.js` extensions (the
 //! extension can be set in the relay compiler config). The `FileSource` struct represents a connection to a file source,
 //! and provides methods for reading and parsing the contents of the file.
+#[cfg(not(target_arch = "wasm32"))]
 mod external_file_source;
 mod extract_graphql;
 mod file_categorizer;
@@ -18,7 +19,9 @@ mod file_group;
 mod read_file_to_string;
 mod source_control_update_status;
 mod walk_dir_file_source;
+#[cfg(not(target_arch = "wasm32"))]
 mod watchman_file_source;
+#[cfg(not(target_arch = "wasm32"))]
 mod watchman_query_builder;
 
 use std::path::PathBuf;
@@ -26,23 +29,39 @@ use std::sync::Arc;
 
 use common::PerfLogEvent;
 use common::PerfLogger;
+#[cfg(not(target_arch = "wasm32"))]
 use external_file_source::ExternalFileSource;
 pub use file_categorizer::FileCategorizer;
 pub use file_categorizer::categorize_files;
 pub use file_group::FileGroup;
+#[cfg(not(target_arch = "wasm32"))]
 use graphql_watchman::WatchmanFileSourceResult;
+#[cfg(not(target_arch = "wasm32"))]
 use graphql_watchman::WatchmanFileSourceSubscription;
+#[cfg(not(target_arch = "wasm32"))]
 use graphql_watchman::WatchmanFileSourceSubscriptionNextChange;
+#[cfg(not(target_arch = "wasm32"))]
 use log::warn;
 pub use read_file_to_string::read_file_to_string;
 use serde::Deserialize;
+#[cfg(not(target_arch = "wasm32"))]
 use serde_bser::value::Value;
 pub use source_control_update_status::SourceControlUpdateStatus;
+#[cfg(not(target_arch = "wasm32"))]
 use tokio::sync::Notify;
+#[cfg(not(target_arch = "wasm32"))]
 pub use watchman_client::prelude::Clock;
+#[cfg(not(target_arch = "wasm32"))]
 use watchman_file_source::WatchmanFileSource;
 
+/// On wasm32, Clock is not available from watchman_client.
+/// Provide a stub type that satisfies serialization requirements.
+#[cfg(target_arch = "wasm32")]
+pub type Clock = ();
+
+#[cfg(not(target_arch = "wasm32"))]
 pub use self::external_file_source::ExternalFileSourceResult;
+#[cfg(not(target_arch = "wasm32"))]
 pub use self::extract_graphql::FsSourceReader;
 pub use self::extract_graphql::LocatedDocblockSource;
 pub use self::extract_graphql::LocatedGraphQLSource;
@@ -56,13 +75,17 @@ pub use self::walk_dir_file_source::WalkDirFileSourceResult;
 use crate::compiler_state::CompilerState;
 use crate::config::Config;
 use crate::config::FileSourceKind;
+#[cfg(not(target_arch = "wasm32"))]
 use crate::errors::Error;
 use crate::errors::Result;
 
 pub enum FileSource {
+    #[cfg(not(target_arch = "wasm32"))]
     Watchman(WatchmanFileSource),
+    #[cfg(not(target_arch = "wasm32"))]
     External(ExternalFileSource),
     WalkDir(WalkDirFileSource),
+    #[cfg(not(target_arch = "wasm32"))]
     Test(TestFileSource),
 }
 
@@ -70,6 +93,7 @@ pub enum FileSource {
 ///
 /// This file source uses WalkDir for initial query and channel-based
 /// notifications for subscriptions, allowing tests control notification of file changes.
+#[cfg(not(target_arch = "wasm32"))]
 pub struct TestFileSource {
     config: Arc<Config>,
     walk_dir_source: WalkDirFileSource,
@@ -78,18 +102,21 @@ pub struct TestFileSource {
 impl FileSource {
     pub async fn connect(
         config: &Arc<Config>,
-        perf_logger_event: &impl PerfLogEvent,
+        _perf_logger_event: &impl PerfLogEvent,
     ) -> Result<FileSource> {
         match &config.file_source_config {
+            #[cfg(not(target_arch = "wasm32"))]
             FileSourceKind::Watchman => Ok(Self::Watchman(
-                WatchmanFileSource::connect(config, perf_logger_event).await?,
+                WatchmanFileSource::connect(config, _perf_logger_event).await?,
             )),
+            #[cfg(not(target_arch = "wasm32"))]
             FileSourceKind::External(changed_files_list) => Ok(Self::External(
                 ExternalFileSource::new(changed_files_list.to_path_buf(), Arc::clone(config)),
             )),
             FileSourceKind::WalkDir => {
                 Ok(Self::WalkDir(WalkDirFileSource::new(Arc::clone(config))))
             }
+            #[cfg(not(target_arch = "wasm32"))]
             FileSourceKind::Test(_) => Ok(Self::Test(TestFileSource {
                 config: Arc::clone(config),
                 walk_dir_source: WalkDirFileSource::new(Arc::clone(config)),
@@ -99,15 +126,17 @@ impl FileSource {
 
     pub async fn query(
         &self,
-        perf_logger_event: &impl PerfLogEvent,
+        _perf_logger_event: &impl PerfLogEvent,
         perf_logger: &impl PerfLogger,
     ) -> Result<CompilerState> {
         match self {
-            Self::Watchman(file_source) => file_source.query(perf_logger_event, perf_logger).await,
+            #[cfg(not(target_arch = "wasm32"))]
+            Self::Watchman(file_source) => file_source.query(_perf_logger_event, perf_logger).await,
+            #[cfg(not(target_arch = "wasm32"))]
             Self::External(file_source) => {
                 let result = file_source.create_compiler_state(perf_logger);
                 if let Err(err) = &result {
-                    perf_logger_event.string(
+                    _perf_logger_event.string(
                         "external_file_source_create_compiler_state_error",
                         format!("{err:?}"),
                     );
@@ -115,21 +144,23 @@ impl FileSource {
                         "Unable to create state from external source: {err:?}. Sending a full watchman query..."
                     );
                     let watchman_file_source =
-                        WatchmanFileSource::connect(&file_source.config, perf_logger_event).await?;
+                        WatchmanFileSource::connect(&file_source.config, _perf_logger_event).await?;
                     watchman_file_source
-                        .full_query(perf_logger_event, perf_logger)
+                        .full_query(_perf_logger_event, perf_logger)
                         .await
                 } else {
                     result
                 }
             }
             Self::WalkDir(file_source) => file_source.create_compiler_state(perf_logger),
+            #[cfg(not(target_arch = "wasm32"))]
             Self::Test(file_source) => file_source
                 .walk_dir_source
                 .create_compiler_state(perf_logger),
         }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub async fn subscribe(
         self,
         perf_logger_event: &impl PerfLogEvent,
@@ -190,7 +221,9 @@ impl File {
 
 #[derive(Debug)]
 pub enum FileSourceResult {
+    #[cfg(not(target_arch = "wasm32"))]
     Watchman(WatchmanFileSourceResult),
+    #[cfg(not(target_arch = "wasm32"))]
     External(ExternalFileSourceResult),
     WalkDir(WalkDirFileSourceResult),
 }
@@ -198,7 +231,9 @@ pub enum FileSourceResult {
 impl FileSourceResult {
     pub fn clock(&self) -> Option<Clock> {
         match self {
+            #[cfg(not(target_arch = "wasm32"))]
             Self::Watchman(file_source) => Some(file_source.clock.clone()),
+            #[cfg(not(target_arch = "wasm32"))]
             Self::External(_) => None,
             Self::WalkDir(_) => None,
         }
@@ -206,12 +241,15 @@ impl FileSourceResult {
 
     pub fn resolved_root(&self) -> PathBuf {
         match self {
+            #[cfg(not(target_arch = "wasm32"))]
             Self::Watchman(file_source_result) => file_source_result.resolved_root.path(),
+            #[cfg(not(target_arch = "wasm32"))]
             Self::External(file_source_result) => file_source_result.resolved_root.clone(),
             Self::WalkDir(file_source_result) => file_source_result.resolved_root.clone(),
         }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn saved_state_info(&self) -> &Option<Value> {
         match self {
             Self::Watchman(file_source_result) => &file_source_result.saved_state_info,
@@ -222,13 +260,16 @@ impl FileSourceResult {
 
     pub fn size(&self) -> usize {
         match self {
+            #[cfg(not(target_arch = "wasm32"))]
             Self::Watchman(file_source_result) => file_source_result.files.len(),
+            #[cfg(not(target_arch = "wasm32"))]
             Self::External(file_source_result) => file_source_result.files.len(),
             Self::WalkDir(file_source_result) => file_source_result.files.len(),
         }
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub enum FileSourceSubscription {
     Watchman(WatchmanFileSourceSubscription), // Oss(OssFileSourceSubscription),
     Test(TestFileSourceSubscription),
@@ -240,11 +281,13 @@ pub enum FileSourceSubscription {
 /// WalkDir rescan to find what files changed. This allows tests to:
 /// 1. Write file changes to disk
 /// 2. Call `TestFileSourceConfig::notify()` to trigger a rescan and rebuild
+#[cfg(not(target_arch = "wasm32"))]
 pub struct TestFileSourceSubscription {
     notify: Arc<Notify>,
     walk_dir_source: WalkDirFileSource,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl FileSourceSubscription {
     pub async fn next_change(&mut self) -> Result<FileSourceSubscriptionNextChange> {
         match self {
@@ -264,6 +307,7 @@ impl FileSourceSubscription {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug)]
 pub enum FileSourceSubscriptionNextChange {
     Watchman(WatchmanFileSourceSubscriptionNextChange),

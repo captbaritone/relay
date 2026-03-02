@@ -19,11 +19,12 @@ use std::path::PathBuf;
 use common::Diagnostic;
 use glob::PatternError;
 use graphql_cli::DiagnosticPrinter;
-use persist_query::PersistError;
 use relay_config::ProjectName;
 use serde::Serialize;
 use thiserror::Error;
 
+use crate::config::PersistError;
+#[cfg(not(target_arch = "wasm32"))]
 use crate::FsSourceReader;
 use crate::SourceReader;
 use crate::source_for_location;
@@ -105,6 +106,7 @@ pub enum Error {
         source: std::io::Error,
     },
 
+    #[cfg(not(target_arch = "wasm32"))]
     #[error("Watchman error: {source}")]
     Watchman {
         #[serde(skip_serializing)]
@@ -308,6 +310,7 @@ pub enum BuildProjectError {
 ///
 /// This is primarily intended for use in tests to format error output
 /// in a human-readable way with source code context.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn print_compiler_error(root_dir: &Path, error: Error) -> String {
     let mut error_printer = CompilerErrorPrinter::new(root_dir);
     error_printer.print_error(error);
@@ -337,6 +340,7 @@ pub struct CompilerErrorPrinter<'a> {
 
 impl<'a> CompilerErrorPrinter<'a> {
     /// Create a new error printer for the given root directory.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn new(root_dir: &'a Path) -> Self {
         Self {
             chunks: vec![],

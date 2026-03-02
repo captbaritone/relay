@@ -5,6 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+#[cfg(not(target_arch = "wasm32"))]
 use core::panic;
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -15,6 +16,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use common::sync::ParallelIterator;
+#[cfg(not(target_arch = "wasm32"))]
 use fnv::FnvHashSet;
 use log::warn;
 use rayon::iter::IntoParallelRefIterator;
@@ -41,6 +43,7 @@ pub fn categorize_files(
     let categorizer = FileCategorizer::from_config(config);
 
     let result = match file_source_result {
+        #[cfg(not(target_arch = "wasm32"))]
         FileSourceResult::Watchman(file_source_result) => {
             let mut relevant_projects = FnvHashSet::default();
             for (project_name, project_config) in &config.projects {
@@ -88,6 +91,7 @@ pub fn categorize_files(
                 })
                 .collect::<Vec<_>>()
         }
+        #[cfg(not(target_arch = "wasm32"))]
         FileSourceResult::External(result) => {
             categorize_non_watchman_files(&categorizer, config, &result.files)
         }

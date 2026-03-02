@@ -12,11 +12,11 @@
 //! generating artifacts.
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use std::env;
 use std::fmt;
-use std::fs::File as FsFile;
 use std::hash::Hash;
+#[cfg(not(target_arch = "wasm32"))]
 use std::io::BufReader;
+#[cfg(not(target_arch = "wasm32"))]
 use std::io::BufWriter;
 use std::path::MAIN_SEPARATOR;
 use std::path::Path;
@@ -26,6 +26,7 @@ use std::sync::Arc;
 use std::sync::RwLock;
 use std::vec;
 
+#[cfg(not(target_arch = "wasm32"))]
 use bincode::Options;
 use common::PerfLogEvent;
 use common::PerfLogger;
@@ -34,6 +35,7 @@ use dashmap::DashSet;
 use fnv::FnvBuildHasher;
 use fnv::FnvHashMap;
 use fnv::FnvHashSet;
+#[cfg(not(target_arch = "wasm32"))]
 use log::debug;
 use rayon::prelude::*;
 use relay_config::ProjectName;
@@ -45,12 +47,15 @@ use schema_diff::detect_changes;
 use schemars::JsonSchema;
 use serde::Deserialize;
 use serde::Serialize;
+#[cfg(not(target_arch = "wasm32"))]
 use zstd::stream::read::Decoder as ZstdDecoder;
+#[cfg(not(target_arch = "wasm32"))]
 use zstd::stream::write::Encoder as ZstdEncoder;
 
 use crate::artifact_map::ArtifactMap;
 use crate::artifact_map::ArtifactSourceKey;
 use crate::config::Config;
+#[cfg(not(target_arch = "wasm32"))]
 use crate::errors::Error;
 use crate::errors::Result;
 use crate::file_source::Clock;
@@ -771,7 +776,11 @@ impl CompilerState {
         result
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn serialize_to_file(&self, path: &PathBuf) -> Result<()> {
+        use std::env;
+        use std::fs::File as FsFile;
+
         let zstd_level: i32 = env::var("RELAY_SAVED_STATE_ZSTD_LEVEL").map_or_else(
             |_| 12,
             |level| {
@@ -809,7 +818,11 @@ impl CompilerState {
         })
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn deserialize_from_file(path: &PathBuf) -> Result<Self> {
+        use std::env;
+        use std::fs::File as FsFile;
+
         let is_already_decompressed = path
             .to_str()
             .map(|s| s.ends_with(".decompressed"))

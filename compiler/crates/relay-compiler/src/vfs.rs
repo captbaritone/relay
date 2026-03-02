@@ -56,8 +56,10 @@ pub trait Vfs: Send + Sync {
 }
 
 /// Production VFS implementation that delegates to `std::fs`.
+#[cfg(not(target_arch = "wasm32"))]
 pub struct OsVfs;
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Vfs for OsVfs {
     fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
         std::fs::read(path)

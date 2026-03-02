@@ -6,7 +6,9 @@
  */
 
 mod local_persister;
+#[cfg(not(target_arch = "wasm32"))]
 mod remote_persister;
 
 pub use local_persister::LocalPersister;
+#[cfg(not(target_arch = "wasm32"))]
 pub use remote_persister::RemotePersister;
