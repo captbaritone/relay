@@ -4,7 +4,7 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * @generated SignedSource<<7afb51e0fa901e3bfae2f4df45a4d022>>
+ * @generated SignedSource<<9166fa8586bb580721f5f9ea7fdcb87a>>
  */
 
 mod relay_compiler_integration;
@@ -241,6 +241,13 @@ async fn multiple_resolvers_returns_interfaces_of_all_strong_model_type() {
     let input = include_str!("relay_compiler_integration/fixtures/multiple_resolvers_returns_interfaces_of_all_strong_model_type.input");
     let expected = include_str!("relay_compiler_integration/fixtures/multiple_resolvers_returns_interfaces_of_all_strong_model_type.expected");
     test_fixture(transform_fixture, file!(), "multiple_resolvers_returns_interfaces_of_all_strong_model_type.input", "relay_compiler_integration/fixtures/multiple_resolvers_returns_interfaces_of_all_strong_model_type.expected", input, expected).await;
+}
+
+#[tokio::test]
+async fn no_graphql_operations() {
+    let input = include_str!("relay_compiler_integration/fixtures/no_graphql_operations.input");
+    let expected = include_str!("relay_compiler_integration/fixtures/no_graphql_operations.expected");
+    test_fixture(transform_fixture, file!(), "no_graphql_operations.input", "relay_compiler_integration/fixtures/no_graphql_operations.expected", input, expected).await;
 }
 
 #[tokio::test]

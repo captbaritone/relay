@@ -210,8 +210,6 @@ fn extract_schema_documents_for_resolvers<'a>(
                 Err(err) => errors.extend(err),
             }
         }
-    } else {
-        panic!("Expected to have access to AST and docblock sources.");
     }
 
     if errors.is_empty() {

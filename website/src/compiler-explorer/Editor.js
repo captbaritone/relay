@@ -12,6 +12,9 @@ import 'monaco-editor/esm/vs/editor/browser/controller/coreCommands.js';
 import 'monaco-editor/esm/vs/editor/contrib/find/findController.js';
 import 'monaco-editor/esm/vs/editor/contrib/hover/hover.js';
 import 'monaco-editor/esm/vs/basic-languages/graphql/graphql.contribution.js';
+import 'monaco-editor/esm/vs/basic-languages/javascript/javascript.contribution.js';
+import 'monaco-editor/esm/vs/basic-languages/typescript/typescript.contribution.js';
+import 'monaco-editor/esm/vs/language/json/monaco.contribution.js';
 
 import {useThemeConfig} from '@docusaurus/theme-common';
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js';
@@ -40,7 +43,7 @@ const editorOptions = {
   tabSize: 2,
 };
 
-export default function Editor({text, onDidChange, diagnostics, style}) {
+export default function Editor({text, onDidChange, diagnostics, style, language}) {
   const [ref, setRef] = useState(null);
   const isDarkMode = useIsDarkMode();
   const editorTheme = isDarkMode ? 'vs-dark' : 'vs';
@@ -49,7 +52,10 @@ export default function Editor({text, onDidChange, diagnostics, style}) {
     if (ref == null) {
       return null;
     }
-    return monaco.editor.create(ref, editorOptions);
+    return monaco.editor.create(ref, {
+      ...editorOptions,
+      language: language || 'graphql',
+    });
   }, [ref]);
 
   useLayoutEffect(() => {
@@ -101,7 +107,7 @@ export default function Editor({text, onDidChange, diagnostics, style}) {
     };
   }, [editor, onDidChange]);
 
-  return <div ref={setRef} style={style}></div>;
+  return <div ref={setRef} style={{...style, borderRadius: '0 0 6px 6px'}}></div>;
 }
 
 function getIsDarkMode() {

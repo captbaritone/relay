@@ -1,0 +1,17 @@
+//- relay.config.json
+{
+   "language": "typescript",
+   "schema": "./schema.graphql",
+   "src": "./"
+}
+
+//- schema.graphql
+type User {
+   name: String
+}
+type Query {
+   me: User
+}
+
+//- App.tsx
+graphql

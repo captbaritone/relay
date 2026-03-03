@@ -1,0 +1,162 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @format
+ * @oncall relay
+ */
+
+.container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 0;
+}
+
+.panels {
+  display: flex;
+  flex-grow: 1;
+  column-gap: 16px;
+  min-height: 0;
+}
+
+.panel {
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--ifm-background-color);
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 0 0;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+  background: var(--ifm-color-emphasis-100);
+  min-height: 36px;
+  overflow: hidden;
+}
+
+.panelHeaderTabs {
+  flex: 1 1 auto;
+  overflow: auto;
+}
+
+.panelBody {
+  flex-grow: 1;
+  min-height: 0;
+}
+
+/* Tab overrides */
+.tabs {
+  margin-bottom: 0;
+}
+
+.tabs :global(.tabs) {
+  border-bottom: none;
+  gap: 0;
+  list-style: none;
+  padding-left: 0;
+}
+
+.tabs :global(.tabs__item) {
+  padding: 6px 12px;
+  font-size: var(--ifm-font-size-small);
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  transition: background 0.15s ease;
+}
+
+.tabs :global(.tabs__item:hover) {
+  background: var(--ifm-color-emphasis-200);
+  border-bottom-color: transparent;
+}
+
+.tabs :global(.tabs__item--active) {
+  background: color-mix(in srgb, var(--ifm-color-primary) 15%, transparent);
+  border-bottom-color: transparent;
+  color: var(--ifm-color-primary);
+  font-weight: 600;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tabClose {
+  cursor: pointer;
+  opacity: 0.4;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  transition: opacity 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.tabClose:hover {
+  opacity: 1;
+}
+
+.tabAdd :global(.tabs__item) {
+  opacity: 0.5;
+  font-size: 16px;
+  padding: 6px 10px;
+  transition: opacity 0.15s ease;
+}
+
+.tabAdd :global(.tabs__item:hover) {
+  opacity: 1;
+  background: var(--ifm-color-emphasis-200);
+}
+
+.tabEditInput {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: var(--ifm-font-size-small);
+  padding: 0;
+  outline: 1px solid var(--ifm-color-primary);
+  border-radius: 2px;
+}
+
+.copyButton {
+  all: unset;
+  cursor: pointer;
+  padding: 4px 6px;
+  line-height: 1;
+  border-radius: 4px;
+  opacity: 0.5;
+  transition: opacity 0.15s ease, background 0.15s ease;
+  color: var(--ifm-color-emphasis-800);
+  display: inline-flex;
+  align-items: center;
+}
+
+.copyButton:hover {
+  opacity: 1;
+  background: var(--ifm-color-emphasis-200);
+}
+
+.heading {
+  margin: 0;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ifm-color-emphasis-600);
+}
+
+.errorHeading {
+  color: var(--ifm-color-danger);
+}

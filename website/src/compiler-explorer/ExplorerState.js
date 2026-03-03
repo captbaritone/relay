@@ -8,7 +8,7 @@
  * @oncall relay
  */
 
-import {DEFAULT_STATE, FEATURE_FLAGS} from './ExplorerStateConstants';
+import {DEFAULT_STATE} from './ExplorerStateConstants';
 import {deserializeState, serializeState} from './ExplorerStateSerialization';
 import * as React from 'react';
 
@@ -29,18 +29,15 @@ export function useExplorerState() {
 
   const actionHandlers = useMemo(() => {
     return {
-      setSchemaText: schemaText =>
-        dispatch({type: 'UPDATE_SCHEMA', schemaText}),
-      setDocumentText: documentText =>
-        dispatch({type: 'UPDATE_DOCUMENT', documentText}),
-      setFeatureFlag: (flag, value) =>
-        dispatch({type: 'SET_FEATURE_FLAG', flag, value}),
-      setLanguage: language => dispatch({type: 'SET_LANGUAGE', language}),
-      setOutputType: outputType =>
-        dispatch({type: 'SET_OUTPUT_TYPE', outputType}),
-      setInputWindow: inputWindow => {
-        dispatch({type: 'UPDATE_INPUT_WINDOW', inputWindow});
-      },
+      setFileContent: (path, content) =>
+        dispatch({type: 'SET_FILE_CONTENT', path, content}),
+      setActiveInputTab: path =>
+        dispatch({type: 'SET_ACTIVE_INPUT_TAB', path}),
+      addFile: (path, content) =>
+        dispatch({type: 'ADD_FILE', path, content}),
+      removeFile: path => dispatch({type: 'REMOVE_FILE', path}),
+      renameFile: (oldPath, newPath) =>
+        dispatch({type: 'RENAME_FILE', oldPath, newPath}),
     };
   }, []);
   return {
@@ -51,22 +48,45 @@ export function useExplorerState() {
 
 function reducer(state, action) {
   switch (action.type) {
-    case 'UPDATE_SCHEMA':
-      return {...state, schemaText: action.schemaText};
-    case 'UPDATE_DOCUMENT':
-      return {...state, documentText: action.documentText};
-    case 'SET_OUTPUT_TYPE':
-      return {...state, outputType: action.outputType};
-    case 'UPDATE_INPUT_WINDOW':
-      return {...state, inputWindow: action.inputWindow};
-    case 'SET_FEATURE_FLAG':
-      const featureFlags = {
-        ...state.featureFlags,
-        [action.flag]: action.value,
+    case 'SET_FILE_CONTENT':
+      return {
+        ...state,
+        files: {...state.files, [action.path]: action.content},
       };
-      return {...state, featureFlags};
-    case 'SET_LANGUAGE':
-      return {...state, language: action.language};
+    case 'SET_ACTIVE_INPUT_TAB':
+      return {...state, activeInputTab: action.path};
+    case 'ADD_FILE': {
+      const files = {...state.files, [action.path]: action.content ?? ''};
+      return {...state, files, activeInputTab: action.path};
+    }
+    case 'REMOVE_FILE': {
+      const {[action.path]: _, ...rest} = state.files;
+      const remainingKeys = Object.keys(rest);
+      const activeInputTab =
+        state.activeInputTab === action.path
+          ? remainingKeys[0] || ''
+          : state.activeInputTab;
+      return {...state, files: rest, activeInputTab};
+    }
+    case 'RENAME_FILE': {
+      if (action.oldPath === action.newPath) {
+        return state;
+      }
+      // Rebuild files object preserving key order, with the old key replaced
+      const files = {};
+      for (const [key, value] of Object.entries(state.files)) {
+        if (key === action.oldPath) {
+          files[action.newPath] = value;
+        } else {
+          files[key] = value;
+        }
+      }
+      const activeInputTab =
+        state.activeInputTab === action.oldPath
+          ? action.newPath
+          : state.activeInputTab;
+      return {...state, files, activeInputTab};
+    }
     default:
       throw new Error('Unexpected action type: ' + action.type);
   }
@@ -85,25 +105,4 @@ function initializeState() {
     }
   }
   return DEFAULT_STATE;
-}
-
-// The wasm compiler expects feature flags as a JSON string with some flags modeled as an enum.
-// this hook derives that value.
-export function useSerializedFeatureFlags(state) {
-  return useMemo(() => {
-    const normalized = Object.fromEntries(
-      FEATURE_FLAGS.map(({key, kind}) => {
-        const value = state.featureFlags[key];
-        switch (kind) {
-          case 'enum':
-            return [key, {kind: value ? 'enabled' : 'disabled'}];
-          case 'bool':
-            return [key, value];
-          default:
-            throw new Error(`Unexpected feature flag kind: ${kind}`);
-        }
-      }),
-    );
-    return JSON.stringify(normalized, null, 2);
-  }, [state.featureFlags]);
 }

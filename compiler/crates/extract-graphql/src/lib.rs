@@ -152,6 +152,9 @@ pub fn extract(input: &str) -> Vec<JavaScriptSourceFeature> {
                                 continue 'code;
                             }
                         }
+                    } else {
+                        // End of input before finding a backtick
+                        continue 'code;
                     }
                 }
                 let start = i;
