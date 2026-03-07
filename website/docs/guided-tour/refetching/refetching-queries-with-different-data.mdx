@@ -334,4 +334,8 @@ Let's distill what's going on here:
 * At this point, when we update the state, the data for the query should already be cached in the local Relay store, so we use `fetchPolicy` of `'store-only'` to avoid suspending and only read the already cached data.
 
 
+### E2E Test
+
+See the [useRefetchableFragment e2e test](https://github.com/facebook/relay/blob/main/packages/relay-e2e-test/fixtures/queries/refetchable-fragment.md) for a runnable example.
+
 <DocsRating />

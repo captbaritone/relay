@@ -81,4 +81,8 @@ function NameDisplay({ queryReference }) {
 * `data`: Object that contains data which has been read out from the Relay store; the object matches the shape of specified query.
     * The Flow type for data will also match this shape, and contain types derived from the GraphQL Schema. For example, the type of `data` above is: `{ user: ?{ name: ?string } }`.
 
+### E2E Test
+
+See the [usePreloadedQuery e2e test](https://github.com/facebook/relay/blob/main/packages/relay-e2e-test/fixtures/queries/preloaded-query.md) for a runnable example.
+
 <DocsRating />

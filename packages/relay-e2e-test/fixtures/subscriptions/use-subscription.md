@@ -1,13 +1,13 @@
-# Subscription
+# useSubscription Hook
 
-Demonstrates a GraphQL subscription that notifies when a mutation is made. A
-module-scoped event emitter connects the mutation resolver to the subscription
-resolver: calling the `addMessage` mutation pushes the new message into the
-subscription stream, and the component receives it via `requestSubscription`.
+Demonstrates the `useSubscription` hook for subscribing to a GraphQL
+subscription. Unlike `requestSubscription` (the imperative API), this hook
+manages the subscription lifecycle automatically — subscribing on mount and
+unsubscribing on unmount.
 
-The initial query fetches the current list of messages (empty). After render, a
-subscription is started. Clicking "Send" fires a mutation that adds a message and
-triggers the subscription, which appends the message to the displayed list.
+The setup is the same as the `requestSubscription` test: a pub/sub connects
+a mutation to a subscription stream. Clicking "Send" fires a mutation and
+the `useSubscription` hook receives the new message.
 
 ## Relay Config
 
@@ -78,30 +78,28 @@ export async function* messageAdded(): AsyncIterable<MessageEvent> {
 ## App
 
 ```tsx title="App.tsx"
-import { Suspense, useEffect, useState, useCallback } from "react";
+import { Suspense, useState, useCallback, useMemo } from "react";
 import {
   RelayEnvironmentProvider,
   useLazyLoadQuery,
   useMutation,
+  useSubscription,
 } from "react-relay";
-import {
-  graphql,
-  Environment,
-  requestSubscription,
-} from "relay-runtime";
+import type { GraphQLSubscriptionConfig } from "relay-runtime";
+import { graphql, Environment } from "relay-runtime";
 import { gratsNetwork } from "../GratsNetwork";
-import { AppSubscriptionQuery } from "./__generated__/AppSubscriptionQuery.graphql";
-import { AppSubscriptionAddMutation } from "./__generated__/AppSubscriptionAddMutation.graphql";
-import { AppSubscriptionMessageAddedSubscription } from "./__generated__/AppSubscriptionMessageAddedSubscription.graphql";
+import { AppUseSubscriptionQuery } from "./__generated__/AppUseSubscriptionQuery.graphql";
+import { AppUseSubscriptionAddMutation } from "./__generated__/AppUseSubscriptionAddMutation.graphql";
+import { AppUseSubscriptionMessageAddedSubscription } from "./__generated__/AppUseSubscriptionMessageAddedSubscription.graphql";
 
 const testEnvironment = new Environment({
   network: gratsNetwork,
 });
 
 function MessageBoard() {
-  const data = useLazyLoadQuery<AppSubscriptionQuery>(
+  const data = useLazyLoadQuery<AppUseSubscriptionQuery>(
     graphql`
-      query AppSubscriptionQuery {
+      query AppUseSubscriptionQuery {
         allMessages
       }
     `,
@@ -110,12 +108,11 @@ function MessageBoard() {
 
   const [received, setReceived] = useState<string[]>([]);
 
-  useEffect(() => {
-    const sub = requestSubscription<AppSubscriptionMessageAddedSubscription>(
-      testEnvironment,
-      {
+  const subscriptionConfig =
+    useMemo<GraphQLSubscriptionConfig<AppUseSubscriptionMessageAddedSubscription>>(
+      () => ({
         subscription: graphql`
-          subscription AppSubscriptionMessageAddedSubscription {
+          subscription AppUseSubscriptionMessageAddedSubscription {
             messageAdded {
               text
             }
@@ -127,21 +124,22 @@ function MessageBoard() {
             setReceived((prev) => [...prev, response.messageAdded.text]);
           }
         },
-      },
+      }),
+      [],
     );
-    return () => sub.dispose();
-  }, []);
 
-  const [commit] = useMutation<AppSubscriptionAddMutation>(
+  useSubscription(subscriptionConfig);
+
+  const [commit] = useMutation<AppUseSubscriptionAddMutation>(
     graphql`
-      mutation AppSubscriptionAddMutation($text: String!) {
+      mutation AppUseSubscriptionAddMutation($text: String!) {
         addMessage(text: $text)
       }
     `,
   );
 
   const handleSend = useCallback(() => {
-    commit({ variables: { text: "Hello from subscription!" } });
+    commit({ variables: { text: "Hello from useSubscription!" } });
   }, [commit]);
 
   const allMessages = [...(data.allMessages ?? []), ...received];

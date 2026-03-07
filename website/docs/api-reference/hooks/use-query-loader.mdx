@@ -92,4 +92,8 @@ A tuple containing the following values:
 * This query reference will be retained by the Relay store, preventing the data from being garbage collected. Once `.dispose()` is called on the query reference, the data is liable to be garbage collected.
 * The `loadQuery` callback should not be called during React's render phase.
 
+### E2E Test
+
+See the [useQueryLoader + usePreloadedQuery e2e test](https://github.com/facebook/relay/blob/main/packages/relay-e2e-test/fixtures/queries/preloaded-query.md) for a runnable example.
+
 <DocsRating />

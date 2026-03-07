@@ -589,4 +589,10 @@ const storyFragment = graphql`
 * Conceptually, this means that we're specifying which arguments affect the output of the connection from the server, or in other words, which arguments are *actually* *filters*. If one of the connection arguments doesn't actually change the set of items that are returned from the server, or their ordering, then it isn't really a filter on the connection, and we don't need to identify the connection differently when that value changes. In our example, changing the `language` of the comments we request doesn't change the set of comments that are returned by the connection, so it is safe to exclude it from `filters`.
 * This can also be useful if we know that any of the connection arguments will never change in our app, in which case it would also be safe to exclude from `filters`.
 
+### E2E Tests
+
+- [@appendEdge e2e test](https://github.com/facebook/relay/blob/main/packages/relay-e2e-test/fixtures/mutations/append-edge.md)
+- [@deleteRecord e2e test](https://github.com/facebook/relay/blob/main/packages/relay-e2e-test/fixtures/mutations/delete-record.md)
+- [Pagination e2e test](https://github.com/facebook/relay/blob/main/packages/relay-e2e-test/fixtures/queries/pagination.md)
+
 <DocsRating />
