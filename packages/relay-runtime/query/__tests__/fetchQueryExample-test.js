@@ -11,9 +11,26 @@
 
 'use strict';
 
+import {Observable} from '../..';
+import type {
+  ExecuteFunction,
+  FetchFunction,
+  INetwork,
+} from '../../network/RelayNetworkTypes';
+const normalizeResponse = require('../../store/normalizeResponse');
+
 const fetchQuery = require('../fetchQuery');
-const {Environment, Network, RecordSource, Store, graphql} = require('relay-runtime');
-const {disallowConsoleErrors, disallowWarnings} = require('relay-test-utils-internal');
+const {Environment, RecordSource, Store, graphql} = require('relay-runtime');
+const {
+  disallowConsoleErrors,
+  disallowWarnings,
+} = require('relay-test-utils-internal');
+const fetchQueryExampleQuery = require('./__generated__/fetchQueryExampleQuery.graphql');
+const defaultGetDataID = require('../../store/defaultGetDataID');
+import {createNormalizationSelector} from '../../store/RelayModernSelector';
+import {getOperationVariables} from '../../store/RelayConcreteVariables';
+import type {NormalizationOptions} from '../../store/RelayResponseNormalizer';
+import {ROOT_ID, ROOT_TYPE} from '../../store/RelayStoreUtils';
 
 disallowWarnings();
 disallowConsoleErrors();
@@ -32,13 +49,60 @@ describe('fetchQuery example', () => {
       },
     };
 
-    // Create a network implementation that returns our hardcoded response.
-    const network = Network.create(() => Promise.resolve(networkResponse));
+    const execute: ExecuteFunction = (
+      request,
+      variables,
+      CacheConfig,
+      uploadables,
+      logRequestInfo,
+    ) => {
+      const dataID = ROOT_ID;
+      const operationVariables = getOperationVariables(
+        fetchQueryExampleQuery.operation,
+        fetchQueryExampleQuery.params.providedVariables,
+        variables,
+      );
+      const selector = createNormalizationSelector(
+        fetchQueryExampleQuery.operation,
+        dataID,
+        operationVariables,
+      );
+      return Observable.from(networkResponse).map(response => {
+        const typename = ROOT_TYPE; // TODO: For incremental payloads this is not right.
+        const options: NormalizationOptions = {
+          getDataID: defaultGetDataID,
+          treatMissingFieldsAsNull: false,
+          deferDeduplicatedFields: false,
+          log: undefined,
+          // TODO: Incremental payloads need a path
+          // TODO: 3D requires extra stuff here
+        };
+        const payload = normalizeResponse(
+          response,
+          selector,
+          typename,
+          options,
+          false, // useExecTimeResolvers
+        );
+        // Return as a normalized response: flat record map with is_normalized flag.
+        // OperationExecutor will skip normalization and commit directly to the store.
+        return {
+          data: payload.source.toJSON(),
+          extensions: {
+            ...((response: $FlowFixMe).extensions),
+            is_normalized: true,
+          },
+        };
+      });
+    };
 
     // Assemble the Relay environment from a record source, store, and network.
     const source = new RecordSource();
     const store = new Store(source);
-    const environment = new Environment({network, store});
+    const environment = new Environment({
+      network: {execute},
+      store,
+    });
 
     // Define a query to fetch.
     const query = graphql`
