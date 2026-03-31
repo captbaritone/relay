@@ -16,6 +16,7 @@ import type {
   LogRequestInfoFunction,
   OperationAvailability,
 } from '../store/RelayStoreTypes';
+import type {NormalizationOperation} from '../util/NormalizationNode';
 import type {RequestParameters} from '../util/RelayConcreteNode';
 import type {CacheConfig, Variables} from '../util/RelayRuntimeTypes';
 import type {
@@ -51,6 +52,7 @@ function wrapNetworkWithLogObserver(
       encryptedVariables?: ?string,
       preprocessResponse?: ?preprocessResponseFunction,
       checkOperation?: () => OperationAvailability,
+      getNormalizationOperation?: () => Promise<NormalizationOperation>,
     ): RelayObservable<GraphQLResponse> {
       const networkRequestId = generateID();
       const logObserver = {
@@ -107,6 +109,7 @@ function wrapNetworkWithLogObserver(
           encryptedVariables,
           preprocessResponse,
           checkOperation,
+          getNormalizationOperation,
         )
         .do(logObserver);
     },

@@ -12,6 +12,7 @@
 'use strict';
 
 import type {OperationAvailability} from '../store/RelayStoreTypes';
+import type {NormalizationOperation} from '../util/NormalizationNode';
 import type {RequestParameters} from '../util/RelayConcreteNode';
 import type {CacheConfig, Variables} from '../util/RelayRuntimeTypes';
 import type RelayObservable, {ObservableFromValue} from './RelayObservable';
@@ -107,6 +108,7 @@ export type ExecuteFunction = (
   preprocessResponse?: ?preprocessResponseFunction,
   // Run datachecker on the current operation and returns the OperationAvailability
   checkOperation?: () => OperationAvailability,
+  getNormalizationOperation?: () => Promise<NormalizationOperation>,
 ) => RelayObservable<GraphQLResponse>;
 
 /**

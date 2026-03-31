@@ -221,6 +221,25 @@ function preloadQueryDeduped<TQuery extends OperationType>(
       undefined,
       undefined,
       checkOperation,
+      () => {
+        if (query != null) {
+          return Promise.resolve(query.operation);
+        }
+        const existingModule =
+          params.id != null ? PreloadableQueryRegistry.get(params.id) : null;
+        if (existingModule != null) {
+          return Promise.resolve(existingModule.operation);
+        }
+        return new Promise(resolve => {
+          const {dispose} = PreloadableQueryRegistry.onLoad(
+            (params.id: any),
+            loadedModule => {
+              dispose();
+              resolve(loadedModule.operation);
+            },
+          );
+        });
+      },
     );
     const subject = new ReplaySubject<GraphQLResponse>();
     nextQueryEntry = {

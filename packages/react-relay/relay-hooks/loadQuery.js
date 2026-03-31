@@ -28,6 +28,7 @@ import type {
   RequestIdentifier,
   RequestParameters,
 } from 'relay-runtime';
+import type {NormalizationOperation} from 'relay-runtime/util/NormalizationNode';
 import type {OperationAvailability} from 'relay-runtime/store/RelayStoreTypes';
 
 const invariant = require('invariant');
@@ -132,6 +133,7 @@ function loadQuery<
   const makeNetworkRequest = (
     params: RequestParameters,
     checkOperation?: () => OperationAvailability,
+    getNormalizationOperation?: () => Promise<NormalizationOperation>,
   ): Observable<GraphQLResponse> => {
     // N.B. this function is called synchronously or not at all
     // didMakeNetworkRequest is safe to rely on in the returned value
@@ -171,6 +173,7 @@ function loadQuery<
         undefined,
         undefined,
         checkOperation,
+        getNormalizationOperation,
       );
     });
 
@@ -269,6 +272,7 @@ function loadQuery<
         const networkObservable = makeNetworkRequest(
           concreteRequest.params,
           () => environment.check(operation),
+          () => Promise.resolve(concreteRequest.operation),
         );
         const executeObservable = executeWithNetworkSource(
           operation,
@@ -307,7 +311,25 @@ function loadQuery<
       // available, then this query could've never been written to the
       // store in the first place, so it couldn't have been cached.
       const networkObservable =
-        fetchPolicy === 'store-only' ? null : makeNetworkRequest(params);
+        fetchPolicy === 'store-only'
+          ? null
+          : makeNetworkRequest(params, undefined, () => {
+              const existingModule = PreloadableQueryRegistry.get(
+                (queryId: any),
+              );
+              if (existingModule != null) {
+                return Promise.resolve(existingModule.operation);
+              }
+              return new Promise(resolve => {
+                const {dispose} = PreloadableQueryRegistry.onLoad(
+                  (queryId: any),
+                  loadedModule => {
+                    dispose();
+                    resolve(loadedModule.operation);
+                  },
+                );
+              });
+            });
       // $FlowFixMe[method-unbinding] added when improving typing for this parameters
       ({dispose: cancelOnLoadCallback} = PreloadableQueryRegistry.onLoad(
         queryId,

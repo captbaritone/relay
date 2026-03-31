@@ -91,7 +91,7 @@ describe.each(['RelayModernEnvironment', 'MultiActorEnvironment'])(
           });
           function wrapNetworkExecute(network: INetwork): INetwork {
             return {
-              execute: (_1, _2, _3, _4, _5, _6, _7, _checkOperation) => {
+              execute: (_1, _2, _3, _4, _5, _6, _7, _checkOperation, _getNormalizationOperation) => {
                 checkOperation = _checkOperation;
                 return network.execute(
                   _1,
@@ -102,6 +102,7 @@ describe.each(['RelayModernEnvironment', 'MultiActorEnvironment'])(
                   _6,
                   _7,
                   _checkOperation,
+                  _getNormalizationOperation,
                 );
               },
             };
