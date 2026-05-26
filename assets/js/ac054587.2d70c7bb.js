@@ -1,1 +1,0 @@
-(self.webpackChunk=self.webpackChunk||[]).push([[23751],{78647:a=>{"use strict";a.exports=JSON.parse('{"allTagsPath":"/relay/blog/tags","slug":"/relay/blog/tags/relay-hooks","name":"relay-hooks","count":1,"permalink":"/relay/blog/tags/relay-hooks"}')}}]);
