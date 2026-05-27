@@ -43,7 +43,7 @@ export {
     Snapshot,
     Variables,
 } from 'relay-runtime';
-export { MatchContainerProps, MatchPointer } from './relay-hooks/MatchContainer';
+export { MatchContainer, MatchContainerProps, MatchPointer } from './relay-hooks/MatchContainer';
 export { ProfilerContextType } from './relay-hooks/ProfilerContext';
 export { Direction, LoadMoreFn } from './relay-hooks/useLoadMoreFunction';
 export { UseMutationConfig } from './relay-hooks/useMutation';

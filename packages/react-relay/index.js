@@ -25,6 +25,7 @@ const ReactRelayQueryRenderer = require('./ReactRelayQueryRenderer');
 const ReactRelayRefetchContainer = require('./ReactRelayRefetchContainer');
 const EntryPointContainer = require('./relay-hooks/EntryPointContainer.react');
 const loadEntryPoint = require('./relay-hooks/loadEntryPoint');
+const MatchContainer = require('./relay-hooks/MatchContainer');
 const {loadQuery} = require('./relay-hooks/loadQuery');
 const ProfilerContext = require('./relay-hooks/ProfilerContext');
 const RelayEnvironmentProvider = require('./relay-hooks/RelayEnvironmentProvider');
@@ -133,6 +134,7 @@ module.exports = {
 
   // Relay Hooks
   EntryPointContainer: EntryPointContainer,
+  MatchContainer: MatchContainer,
   RelayEnvironmentProvider: RelayEnvironmentProvider,
 
   ProfilerContext: ProfilerContext,
