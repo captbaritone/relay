@@ -15,8 +15,8 @@
 
 const EntryPointContainer = require('./relay-hooks/EntryPointContainer.react');
 const loadEntryPoint = require('./relay-hooks/loadEntryPoint');
-const MatchContainer = require('./relay-hooks/MatchContainer');
 const {loadQuery} = require('./relay-hooks/loadQuery');
+const MatchContainer = require('./relay-hooks/MatchContainer');
 const ProfilerContext = require('./relay-hooks/ProfilerContext');
 const RelayEnvironmentProvider = require('./relay-hooks/RelayEnvironmentProvider');
 const useEntryPointLoader = require('./relay-hooks/useEntryPointLoader');

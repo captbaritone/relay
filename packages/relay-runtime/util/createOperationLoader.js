@@ -11,8 +11,8 @@
 
 'use strict';
 
-import type {NormalizationRootNode} from '../util/NormalizationNode';
 import type {OperationLoader} from '../store/RelayStoreTypes';
+import type {NormalizationRootNode} from '../util/NormalizationNode';
 
 function createOperationLoader(): OperationLoader {
   const cache: Map<mixed, NormalizationRootNode> = new Map();
@@ -22,16 +22,14 @@ function createOperationLoader(): OperationLoader {
     },
     load(reference: mixed): Promise<?NormalizationRootNode> {
       if (typeof reference === 'function') {
-        return Promise.resolve(reference()).then(
-          (mod: ?{default?: ?NormalizationRootNode, ...}) => {
-            const node: NormalizationRootNode = (mod != null &&
-            mod.default != null
-              ? mod.default
-              : mod: $FlowFixMe);
-            cache.set(reference, node);
-            return node;
-          },
-        );
+        const loader: () => mixed = reference as $FlowFixMe;
+        return Promise.resolve(loader()).then(mod => {
+          const node = (mod != null && mod.default != null
+            ? mod.default
+            : mod) as $FlowFixMe as NormalizationRootNode;
+          cache.set(reference, node);
+          return node;
+        });
       }
       return Promise.resolve(null);
     },

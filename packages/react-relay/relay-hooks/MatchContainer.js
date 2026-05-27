@@ -19,20 +19,18 @@ type ModuleProviderFn = () => Promise<{default?: mixed, ...}>;
 
 type CacheEntry =
   | {status: 'pending', promise: Promise<void>}
-  | {status: 'fulfilled', value: React$AbstractComponent<{...}>}
+  | {status: 'fulfilled', value: mixed}
   | {status: 'rejected', reason: mixed};
 
 const _dynamicImportCache: WeakMap<ModuleProviderFn, CacheEntry> =
   new WeakMap();
 
-function defaultDynamicImportLoader(
-  moduleRef: unknown,
-): React$AbstractComponent<{...}> {
+function defaultDynamicImportLoader(moduleRef: unknown): mixed {
   if (typeof moduleRef !== 'function') {
-    return (moduleRef: $FlowFixMe);
+    return moduleRef as $FlowFixMe;
   }
 
-  const providerFn: ModuleProviderFn = (moduleRef: $FlowFixMe);
+  const providerFn: ModuleProviderFn = moduleRef as $FlowFixMe;
   const cached = _dynamicImportCache.get(providerFn);
   if (cached != null) {
     if (cached.status === 'fulfilled') {
@@ -43,9 +41,14 @@ function defaultDynamicImportLoader(
     throw cached.promise;
   }
 
-  const entry: {status: string, promise: Promise<void>, value: mixed, reason: mixed} = {
+  const entry: {
+    status: string,
+    promise: Promise<void>,
+    value: mixed,
+    reason: mixed,
+  } = {
     status: 'pending',
-    promise: (null: $FlowFixMe),
+    promise: null as $FlowFixMe,
     value: null,
     reason: null,
   };
@@ -60,7 +63,7 @@ function defaultDynamicImportLoader(
       entry.reason = err;
     },
   );
-  _dynamicImportCache.set(providerFn, (entry: $FlowFixMe));
+  _dynamicImportCache.set(providerFn, entry as $FlowFixMe);
   throw entry.promise;
 }
 
@@ -195,8 +198,9 @@ function MatchContainer<
     );
   }
 
-  const resolveComponent = loader ?? defaultDynamicImportLoader;
-  const LoadedContainer =
+  const resolveComponent: (module: unknown) => mixed =
+    loader ?? defaultDynamicImportLoader;
+  const LoadedContainer: $FlowFixMe =
     __module_component != null ? resolveComponent(__module_component) : null;
 
   const fragmentProps = useMemo(() => {
