@@ -560,7 +560,12 @@ impl ProjectConfig {
                     pathdiff::diff_paths(target_module_directory, importing_artifact_directory)
                         .unwrap();
 
-                format_normalized_path(&relative_path.join(target_module_file_name)).intern()
+                let result = format_normalized_path(&relative_path.join(target_module_file_name));
+                if !result.starts_with("./") && !result.starts_with("../") && !result.starts_with('/') {
+                    format!("./{result}").intern()
+                } else {
+                    result.intern()
+                }
             }
             JsModuleFormat::Haste => target_module_path
                 .file_stem()

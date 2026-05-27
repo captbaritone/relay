@@ -53,7 +53,8 @@ type SpecialUser implements BasicUser @__RelayResolverModel {
     },
     "surface": "resolvers"
   },
-  "language": "flow"
+  "language": "flow",
+  "jsModuleFormat": "haste"
 }
 ==================================== OUTPUT ===================================
 {
@@ -295,8 +296,8 @@ QUERY:
 
 Query Text is Empty.
 
-import clientUserRelayModelInstanceResolver from '../ClientUserResolver';
-import ClientUser__id_graphql from './ClientUser__id.graphql';
+import clientUserRelayModelInstanceResolver from 'ClientUserResolver';
+import ClientUser__id_graphql from 'ClientUser__id.graphql';
 import {resolverDataInjector} from 'relay-runtime/experimental';
 {
   "argumentDefinitions": [],
@@ -345,8 +346,8 @@ import {resolverDataInjector} from 'relay-runtime/experimental';
   "abstractKey": null
 }
 
-import specialUserRelayModelInstanceResolver from '../SpecialUserResolver';
-import SpecialUser__id_graphql from './SpecialUser__id.graphql';
+import specialUserRelayModelInstanceResolver from 'SpecialUserResolver';
+import SpecialUser__id_graphql from 'SpecialUser__id.graphql';
 import {resolverDataInjector} from 'relay-runtime/experimental';
 {
   "argumentDefinitions": [],
