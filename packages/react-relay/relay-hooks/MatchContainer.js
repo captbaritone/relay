@@ -15,6 +15,55 @@ const React = require('react');
 
 const {useMemo} = React;
 
+type ModuleProviderFn = () => Promise<{default?: mixed, ...}>;
+
+type CacheEntry =
+  | {status: 'pending', promise: Promise<void>}
+  | {status: 'fulfilled', value: React$AbstractComponent<{...}>}
+  | {status: 'rejected', reason: mixed};
+
+const _dynamicImportCache: WeakMap<ModuleProviderFn, CacheEntry> =
+  new WeakMap();
+
+function defaultDynamicImportLoader(
+  moduleRef: unknown,
+): React$AbstractComponent<{...}> {
+  if (typeof moduleRef !== 'function') {
+    return (moduleRef: $FlowFixMe);
+  }
+
+  const providerFn: ModuleProviderFn = (moduleRef: $FlowFixMe);
+  const cached = _dynamicImportCache.get(providerFn);
+  if (cached != null) {
+    if (cached.status === 'fulfilled') {
+      return cached.value;
+    } else if (cached.status === 'rejected') {
+      throw cached.reason;
+    }
+    throw cached.promise;
+  }
+
+  const entry: {status: string, promise: Promise<void>, value: mixed, reason: mixed} = {
+    status: 'pending',
+    promise: (null: $FlowFixMe),
+    value: null,
+    reason: null,
+  };
+  entry.promise = Promise.resolve(providerFn()).then(
+    mod => {
+      const component = mod != null && mod.default != null ? mod.default : mod;
+      entry.status = 'fulfilled';
+      entry.value = component;
+    },
+    err => {
+      entry.status = 'rejected';
+      entry.reason = err;
+    },
+  );
+  _dynamicImportCache.set(providerFn, (entry: $FlowFixMe));
+  throw entry.promise;
+}
+
 /**
  * Renders the results of a data-driven dependency fetched with the `@match`
  * directive. The `@match` directive can be used to specify a mapping of
@@ -98,7 +147,7 @@ export type MatchContainerProps<
   TFallback extends React.Node,
 > = {
   readonly fallback?: ?TFallback,
-  readonly loader: (module: unknown) => component(...TProps),
+  readonly loader?: ?(module: unknown) => component(...TProps),
   readonly match: ?MatchPointer | ?TypenameOnlyPointer,
   readonly props?: TProps,
 };
@@ -146,8 +195,9 @@ function MatchContainer<
     );
   }
 
+  const resolveComponent = loader ?? defaultDynamicImportLoader;
   const LoadedContainer =
-    __module_component != null ? loader(__module_component) : null;
+    __module_component != null ? resolveComponent(__module_component) : null;
 
   const fragmentProps = useMemo(() => {
     // TODO: Perform this transformation in RelayReader so that unchanged
