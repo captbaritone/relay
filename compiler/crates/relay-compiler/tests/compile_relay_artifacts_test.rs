@@ -846,6 +846,13 @@ async fn module_deduping() {
 }
 
 #[tokio::test]
+async fn module_directive_oss_default() {
+    let input = include_str!("compile_relay_artifacts/fixtures/module-directive-oss-default.graphql");
+    let expected = include_str!("compile_relay_artifacts/fixtures/module-directive-oss-default.expected");
+    test_fixture(transform_fixture, file!(), "module-directive-oss-default.graphql", "compile_relay_artifacts/fixtures/module-directive-oss-default.expected", input, expected).await;
+}
+
+#[tokio::test]
 async fn module_in_inline_fragment() {
     let input = include_str!("compile_relay_artifacts/fixtures/module-in-inline-fragment.graphql");
     let expected = include_str!("compile_relay_artifacts/fixtures/module-in-inline-fragment.expected");
