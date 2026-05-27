@@ -537,7 +537,8 @@ impl Config {
                     rollout: config_file_project.rollout,
                     js_module_format: config_file_project.js_module_format,
                     relativize_js_module_paths: config_file_project.relativize_js_module_paths,
-                    module_import_config: config_file_project.module_import_config,
+                    module_import_config: config_file_project.module_import_config
+                        .with_defaults(config_file_project.js_module_format),
                     diagnostic_report_config: config_file_project.diagnostic_report_config,
                     resolvers_schema_module: config_file_project.resolvers_schema_module,
                     codegen_command: config_file_project.codegen_command,

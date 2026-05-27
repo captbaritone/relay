@@ -40,6 +40,7 @@ use lazy_static::lazy_static;
 use md5::Digest;
 use md5::Md5;
 use relay_config::JsModuleFormat;
+use relay_config::ModuleProvider;
 use relay_config::ProjectConfig;
 use relay_config::Surface;
 use relay_transforms::CLIENT_EXTENSION_DIRECTIVE_NAME;
@@ -2552,6 +2553,83 @@ impl<'schema, 'builder, 'config> CodegenBuilder<'schema, 'builder, 'config> {
         }
     }
 
+    fn resolve_module_import_name(
+        &self,
+        module_name: StringKey,
+        module_source_location: common::SourceLocationKey,
+        provider: ModuleProvider,
+    ) -> StringKey {
+        if !matches!(provider, ModuleProvider::Custom { .. }) {
+            return module_name;
+        }
+        let module_name_str = module_name.lookup();
+        let is_relative = module_name_str.starts_with("./") || module_name_str.starts_with("../");
+
+        if matches!(self.project_config.js_module_format, JsModuleFormat::Haste) || !is_relative {
+            module_name
+        } else {
+            assert!(
+                !module_source_location.is_generated(),
+                "Relay bug: @module with relative path '{}' has a generated source location. \
+                 @module spreads should always have real source locations from the parser.",
+                module_name_str
+            );
+            let mut source_dir = PathBuf::from(module_source_location.path());
+            source_dir.pop();
+            let joined = source_dir.join(PathBuf::from(module_name_str));
+            let mut module_path = PathBuf::new();
+            for component in joined.components() {
+                match component {
+                    std::path::Component::ParentDir => {
+                        if !module_path.pop() {
+                            module_path.push(component);
+                        }
+                    }
+                    std::path::Component::CurDir => {}
+                    _ => module_path.push(component),
+                }
+            }
+
+            self.project_config.js_module_import_identifier(
+                &self
+                    .project_config
+                    .artifact_path_for_definition(self.definition_source_location),
+                &module_path,
+            )
+        }
+    }
+
+    fn resolve_normalization_import(
+        &self,
+        fragment_name: FragmentDefinitionName,
+        fragment_source_location: common::SourceLocationKey,
+        provider: ModuleProvider,
+    ) -> StringKey {
+        if !matches!(provider, ModuleProvider::Custom { .. })
+            || matches!(self.project_config.js_module_format, JsModuleFormat::Haste)
+        {
+            return get_normalization_fragment_filename(fragment_name);
+        }
+        assert!(
+            !fragment_source_location.is_generated(),
+            "Relay bug: @module fragment '{}' has a generated source location. \
+             Fragment definitions used with @module should always have real source locations.",
+            fragment_name
+        );
+        let normalization_filename = format!(
+            "{}.graphql",
+            get_normalization_operation_name(fragment_name.0)
+        );
+        let artifact_path = self
+            .project_config
+            .artifact_path_for_definition(self.definition_source_location);
+        let norm_artifact_path = self
+            .project_config
+            .path_for_language_specific_artifact(fragment_source_location, normalization_filename);
+        self.project_config
+            .js_module_import_identifier(&artifact_path, &norm_artifact_path)
+    }
+
     fn build_module_import_selections(
         &mut self,
         module_metadata: &ModuleMetadata,
@@ -2585,6 +2663,8 @@ impl<'schema, 'builder, 'config> CodegenBuilder<'schema, 'builder, 'config> {
             kind: Primitive::String(CODEGEN_CONSTANTS.module_import),
         };
 
+        let module_import_config = self.project_config.module_import_config;
+
         let should_use_reader_module_imports = self
             .project_config
             .feature_flags
@@ -2594,51 +2674,56 @@ impl<'schema, 'builder, 'config> CodegenBuilder<'schema, 'builder, 'config> {
         match self.variant {
             CodegenVariant::Reader => {
                 if (module_metadata.read_time_resolvers || should_use_reader_module_imports)
-                    && let Some(dynamic_module_provider) = self
-                        .project_config
-                        .module_import_config
-                        .dynamic_module_provider
+                    && let Some(dynamic_module_provider) = module_import_config.dynamic_module_provider
                 {
+                    let resolved_component_module = self.resolve_module_import_name(
+                        module_metadata.module_name,
+                        module_metadata.module_source_location,
+                        dynamic_module_provider,
+                    );
                     module_import.push(ObjectEntry {
                         key: CODEGEN_CONSTANTS.component_module_provider,
                         value: Primitive::DynamicImport {
                             provider: dynamic_module_provider,
-                            module: module_metadata.module_name,
+                            module: resolved_component_module,
                         },
                     });
                 }
             }
             CodegenVariant::Normalization => {
-                if let Some(dynamic_module_provider) = self
-                    .project_config
-                    .module_import_config
-                    .dynamic_module_provider
-                    && (self.project_config.module_import_config.surface.is_none()
-                        || self.project_config.module_import_config.surface == Some(Surface::All)
-                        || (self.project_config.module_import_config.surface
-                            == Some(Surface::Resolvers)
+                if let Some(dynamic_module_provider) = module_import_config.dynamic_module_provider
+                    && (module_import_config.surface.is_none()
+                        || module_import_config.surface == Some(Surface::All)
+                        || (module_import_config.surface == Some(Surface::Resolvers)
                             && module_metadata.read_time_resolvers))
                 {
-                    let operation_module_provider = match self
-                        .project_config
-                        .module_import_config
-                        .operation_module_provider
+                    let operation_module_provider = match module_import_config.operation_module_provider
                     {
                         Some(operation_module_provider) => operation_module_provider,
                         None => dynamic_module_provider,
                     };
+                    let resolved_component_module = self.resolve_module_import_name(
+                        module_metadata.module_name,
+                        module_metadata.module_source_location,
+                        dynamic_module_provider,
+                    );
+                    let resolved_operation_module = self.resolve_normalization_import(
+                        fragment_name,
+                        module_metadata.fragment_source_location.source_location(),
+                        operation_module_provider,
+                    );
                     module_import.push(ObjectEntry {
                         key: CODEGEN_CONSTANTS.component_module_provider,
                         value: Primitive::DynamicImport {
                             provider: dynamic_module_provider,
-                            module: module_metadata.module_name,
+                            module: resolved_component_module,
                         },
                     });
                     module_import.push(ObjectEntry {
                         key: CODEGEN_CONSTANTS.operation_module_provider,
                         value: Primitive::DynamicImport {
                             provider: operation_module_provider,
-                            module: get_normalization_fragment_filename(fragment_name),
+                            module: resolved_operation_module,
                         },
                     });
                 }

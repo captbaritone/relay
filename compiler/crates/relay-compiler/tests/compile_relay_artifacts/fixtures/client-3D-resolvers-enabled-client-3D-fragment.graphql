@@ -52,5 +52,6 @@ type SpecialUser implements BasicUser @__RelayResolverModel {
     },
     "surface": "resolvers"
   },
-  "language": "flow"
+  "language": "flow",
+  "jsModuleFormat": "haste"
 }

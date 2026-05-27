@@ -53,6 +53,7 @@ const {
 const RelayObservable = require('../network/RelayObservable');
 const wrapNetworkWithLogObserver = require('../network/wrapNetworkWithLogObserver');
 const RelayOperationTracker = require('../store/RelayOperationTracker');
+const createOperationLoader = require('../util/createOperationLoader');
 const registerEnvironmentWithDevTools = require('../util/registerEnvironmentWithDevTools');
 const defaultGetDataID = require('./defaultGetDataID');
 const defaultRelayFieldLogger = require('./defaultRelayFieldLogger');
@@ -109,7 +110,7 @@ class RelayModernEnvironment implements IEnvironment {
     this.configName = config.configName;
     this._treatMissingFieldsAsNull = config.treatMissingFieldsAsNull === true;
     this._deferDeduplicatedFields = config.deferDeduplicatedFields === true;
-    const operationLoader = config.operationLoader;
+    const operationLoader = config.operationLoader ?? createOperationLoader();
     if (__DEV__) {
       if (operationLoader != null) {
         invariant(

@@ -6,6 +6,10 @@ GraphQL framework for React. Two main components: Rust compiler and JavaScript r
 
 Rust implementation in `compiler/`. Cargo workspace with crates in `compiler/crates/`.
 
+## Error Handling
+
+User input must never trigger a compiler panic. `panic!` and `assert!` are reserved for internal compiler bugs — conditions that indicate a logic error in the compiler itself. Malformed user projects (invalid config, bad GraphQL, missing files) must produce diagnostics via `Diagnostic::error(...)` and propagate as `DiagnosticsResult`. If you're tempted to `assert!` a condition that depends on user-provided data, return a diagnostic instead.
+
 ## Formatting
 
 All non-generated Rust code is autoformatted using `rust fmt`. Run this command before committing changes:
