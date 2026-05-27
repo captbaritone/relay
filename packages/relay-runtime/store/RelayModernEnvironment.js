@@ -109,7 +109,8 @@ class RelayModernEnvironment implements IEnvironment {
     this.configName = config.configName;
     this._treatMissingFieldsAsNull = config.treatMissingFieldsAsNull === true;
     this._deferDeduplicatedFields = config.deferDeduplicatedFields === true;
-    const operationLoader = config.operationLoader;
+    const createOperationLoader = require('../util/createOperationLoader');
+    const operationLoader = config.operationLoader ?? createOperationLoader();
     if (__DEV__) {
       if (operationLoader != null) {
         invariant(
