@@ -2665,6 +2665,8 @@ impl<'schema, 'builder, 'config> CodegenBuilder<'schema, 'builder, 'config> {
             kind: Primitive::String(CODEGEN_CONSTANTS.module_import),
         };
 
+        let effective_config = self.project_config.effective_module_import_config();
+
         let should_use_reader_module_imports = self
             .project_config
             .feature_flags
@@ -2674,10 +2676,8 @@ impl<'schema, 'builder, 'config> CodegenBuilder<'schema, 'builder, 'config> {
         match self.variant {
             CodegenVariant::Reader => {
                 if (module_metadata.read_time_resolvers || should_use_reader_module_imports)
-                    && let Some(dynamic_module_provider) = self
-                        .project_config
-                        .module_import_config
-                        .dynamic_module_provider
+                    && let Some(dynamic_module_provider) =
+                        effective_config.dynamic_module_provider
                 {
                     let resolved_component_module = self.resolve_module_import_name(
                         module_metadata.module_name,
@@ -2694,19 +2694,15 @@ impl<'schema, 'builder, 'config> CodegenBuilder<'schema, 'builder, 'config> {
                 }
             }
             CodegenVariant::Normalization => {
-                if let Some(dynamic_module_provider) = self
-                    .project_config
-                    .module_import_config
-                    .dynamic_module_provider
-                    && (self.project_config.module_import_config.surface.is_none()
-                        || self.project_config.module_import_config.surface == Some(Surface::All)
-                        || (self.project_config.module_import_config.surface
+                if let Some(dynamic_module_provider) =
+                    effective_config.dynamic_module_provider
+                    && (effective_config.surface.is_none()
+                        || effective_config.surface == Some(Surface::All)
+                        || (effective_config.surface
                             == Some(Surface::Resolvers)
                             && module_metadata.read_time_resolvers))
                 {
-                    let operation_module_provider = match self
-                        .project_config
-                        .module_import_config
+                    let operation_module_provider = match effective_config
                         .operation_module_provider
                     {
                         Some(operation_module_provider) => operation_module_provider,
