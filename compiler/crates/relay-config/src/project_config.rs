@@ -38,7 +38,6 @@ use crate::connection_interface::ConnectionInterface;
 use crate::defer_stream_interface::DeferStreamInterface;
 use crate::diagnostic_report_config::DiagnosticReportConfig;
 use crate::module_import_config::ModuleImportConfig;
-use crate::module_import_config::ModuleProvider;
 use crate::non_node_id_fields_config::NonNodeIdFieldsConfig;
 use crate::resolvers_schema_module_config::ResolversSchemaModuleConfig;
 
@@ -571,21 +570,6 @@ impl ProjectConfig {
         }
     }
 
-    /// Returns the module import config with defaults applied based on
-    /// the project's module format. In CommonJS mode, `dynamic_module_provider`
-    /// defaults to `Custom { statement: "() => import('<$module>')" }` so that
-    /// `@module` works out of the box without explicit configuration.
-    pub fn effective_module_import_config(&self) -> ModuleImportConfig {
-        let mut config = self.module_import_config;
-        if config.dynamic_module_provider.is_none()
-            && matches!(self.js_module_format, JsModuleFormat::CommonJS)
-        {
-            config.dynamic_module_provider = Some(ModuleProvider::Custom {
-                statement: "() => import('<$module>')".intern(),
-            });
-        }
-        config
-    }
 }
 
 // Stringify a path such that it is stable across operating systems.

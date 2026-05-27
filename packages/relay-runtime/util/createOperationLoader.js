@@ -15,18 +15,18 @@ import type {OperationLoader} from '../store/RelayStoreTypes';
 import type {NormalizationRootNode} from '../util/NormalizationNode';
 
 function createOperationLoader(): OperationLoader {
-  const cache: Map<mixed, NormalizationRootNode> = new Map();
+  const cache: Map<unknown, NormalizationRootNode> = new Map();
   return {
-    get(reference: mixed): ?NormalizationRootNode {
+    get(reference: unknown): ?NormalizationRootNode {
       return cache.get(reference) ?? null;
     },
-    load(reference: mixed): Promise<?NormalizationRootNode> {
+    load(reference: unknown): Promise<?NormalizationRootNode> {
       if (typeof reference === 'function') {
-        const loader: () => mixed = reference as $FlowFixMe;
-        return Promise.resolve(loader()).then(mod => {
-          const node = (mod != null && mod.default != null
-            ? mod.default
-            : mod) as $FlowFixMe as NormalizationRootNode;
+        const loader: () => Promise<{default?: NormalizationRootNode, ...}> =
+          reference as $FlowFixMe;
+        return loader().then(mod => {
+          const node: NormalizationRootNode =
+            mod.default != null ? mod.default : (mod as $FlowFixMe);
           cache.set(reference, node);
           return node;
         });

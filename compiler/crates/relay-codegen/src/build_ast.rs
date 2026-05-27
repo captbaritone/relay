@@ -2565,14 +2565,12 @@ impl<'schema, 'builder, 'config> CodegenBuilder<'schema, 'builder, 'config> {
         let module_name_str = module_name.lookup();
         let is_relative = module_name_str.starts_with("./") || module_name_str.starts_with("../");
 
-        if matches!(self.project_config.js_module_format, JsModuleFormat::Haste) || !is_relative {
+        if matches!(self.project_config.js_module_format, JsModuleFormat::Haste)
+            || !is_relative
+            || module_source_location.is_generated()
+        {
             module_name
         } else {
-            assert!(
-                !module_source_location.is_generated(),
-                "Cannot resolve relative @module path '{}' from a generated source location",
-                module_name_str
-            );
             let mut source_dir = PathBuf::from(module_source_location.path());
             source_dir.pop();
             let joined = source_dir.join(PathBuf::from(module_name_str));
@@ -2606,14 +2604,10 @@ impl<'schema, 'builder, 'config> CodegenBuilder<'schema, 'builder, 'config> {
     ) -> StringKey {
         if !matches!(provider, ModuleProvider::Custom { .. })
             || matches!(self.project_config.js_module_format, JsModuleFormat::Haste)
+            || fragment_source_location.is_generated()
         {
             return get_normalization_fragment_filename(fragment_name);
         }
-        assert!(
-            !fragment_source_location.is_generated(),
-            "Cannot resolve normalization import path for fragment '{}' from a generated source location",
-            fragment_name
-        );
         let normalization_filename = format!(
             "{}.graphql",
             get_normalization_operation_name(fragment_name.0)
@@ -2661,7 +2655,7 @@ impl<'schema, 'builder, 'config> CodegenBuilder<'schema, 'builder, 'config> {
             kind: Primitive::String(CODEGEN_CONSTANTS.module_import),
         };
 
-        let effective_config = self.project_config.effective_module_import_config();
+        let effective_config = self.project_config.module_import_config;
 
         let should_use_reader_module_imports = self
             .project_config
